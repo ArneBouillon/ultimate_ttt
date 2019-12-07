@@ -20,12 +20,13 @@ impl Board {
         &mut self.structure
     }
 
-    pub fn make_move(&mut self, player: Player, sub_x: usize, sub_y: usize, x: usize, y: usize) -> (Option<usize>, Option<usize>) {
+    pub fn make_move(&mut self, player: Player, sub_x: usize, sub_y: usize, x: usize, y: usize) -> (Option<usize>, Option<usize>, Option<Player>) {
         self.structure()
             .get_mut(sub_x, sub_y)
             .structure()
             .set_owner_at(x.clone(), y.clone(), Some(player));
 
+        let mut winning_player: Option<Player> = None;
         match self.structure().get_mut(sub_x, sub_y).structure().check_winner(x, y) {
             None => {},
             Some(player) => {
@@ -33,14 +34,14 @@ impl Board {
 
                 match self.structure.check_winner(sub_x, sub_y) {
                     None => {},
-                    Some(player) => println!("Game won by {:#?}!", player),
+                    Some(player) => winning_player = Some(player),
                 };
             }
         };
 
         match self.structure().get(x, y).owner() {
-            None => (Some(x), Some(y)),
-            Some(_) => (None, None),
+            None => (Some(x), Some(y), winning_player),
+            Some(_) => (None, None, winning_player),
         }
     }
 }

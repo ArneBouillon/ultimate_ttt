@@ -1,6 +1,6 @@
-use crate::game::game_state::GameState;
-use crate::game::board::Owned;
-use crate::game::player::Player::{Player1, Player2};
+use super::game_state::GameState;
+use super::board::Owned;
+use super::player::Player;
 use std::io::stdin;
 
 pub struct GUI {
@@ -14,13 +14,26 @@ impl GUI {
 
     pub fn game_state(&mut self) -> &mut GameState { &mut self.game_state }
 
-    pub fn play(mut self) {
+    pub fn play(mut self) -> Option<Player> {
         loop {
             println!("{}", self.display());
 
-            let (sub_x, sub_y, x, y) = self.get_move();
+            loop {
+                let (sub_x, sub_y, x, y) = self.get_move();
+                let current_sub_x = self.game_state.current_sub_x;
+                let current_sub_y = self.game_state.current_sub_y;
 
-            self.game_state().make_move_full_board(sub_x, sub_y, x, y)
+                if current_sub_x == None || Some(sub_x) == current_sub_x && Some(sub_y) == current_sub_y {
+                    match self.game_state().make_move_full_board(sub_x, sub_y, x, y) {
+                        None => {},
+                        Some(player) => return Some(player)
+                    }
+
+                    break
+                }
+
+                println!("\nInvalid input!\n")
+            }
         }
     }
 
@@ -49,7 +62,13 @@ impl GUI {
                             .get_mut(minor_x, minor_y)
                             .owner();
 
-                        string += if player == Some(Player1) { "O" } else if player == Some(Player2) { "X" } else { " " }
+                        string += if player == Some(Player::Player1) {
+                                    "O"
+                                  } else if player == Some(Player::Player2) {
+                                    "X"
+                                  } else {
+                                    " "
+                                  }
                     }
 
                     string += "|";
