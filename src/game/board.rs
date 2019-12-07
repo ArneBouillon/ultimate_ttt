@@ -20,7 +20,7 @@ impl Board {
         &mut self.structure
     }
 
-    pub fn make_move(mut self, player: Player, sub_x: usize, sub_y: usize, x: usize, y: usize) -> (Option<usize>, Option<usize>) {
+    pub fn make_move(&mut self, player: Player, sub_x: usize, sub_y: usize, x: usize, y: usize) -> (Option<usize>, Option<usize>) {
         self.structure()
             .get_mut(sub_x, sub_y)
             .structure()
