@@ -1,6 +1,6 @@
-use super::game_state::GameState;
-use super::board::Owned;
-use super::player::Player;
+use crate::game::game_state::GameState;
+use crate::game::board::Owned;
+use crate::game::player::Player;
 use std::io::stdin;
 
 pub struct GUI {
@@ -14,7 +14,7 @@ impl GUI {
 
     pub fn game_state(&mut self) -> &mut GameState { &mut self.game_state }
 
-    pub fn play(mut self) -> Option<Player> {
+    pub fn play_pvp(mut self) -> Option<Player> {
         loop {
             println!("{}", self.display());
 
@@ -24,7 +24,7 @@ impl GUI {
                 let current_sub_y = self.game_state.current_sub_y;
 
                 if current_sub_x == None || Some(sub_x) == current_sub_x && Some(sub_y) == current_sub_y {
-                    match self.game_state().make_move_full_board(sub_x, sub_y, x, y) {
+                    match self.game_state().make_move(sub_x, sub_y, x, y) {
                         None => {},
                         Some(player) => return Some(player)
                     }
@@ -57,9 +57,9 @@ impl GUI {
                         let player = self.game_state
                             .board
                             .structure()
-                            .get_mut(major_x, major_y)
+                            .get(major_x, major_y)
                             .structure()
-                            .get_mut(minor_x, minor_y)
+                            .get(minor_x, minor_y)
                             .owner();
 
                         string += if player == Some(Player::Player1) {

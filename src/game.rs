@@ -1,4 +1,4 @@
-mod board;
-mod player;
-mod game_state;
-pub mod gui;
+pub mod action;
+pub mod board;
+pub mod game_state;
+pub mod player;

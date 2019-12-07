@@ -16,21 +16,25 @@ impl Board {
         }
     }
 
-    pub fn structure(&mut self) -> &mut BoardStructure<SubBoard> {
+    pub fn structure(&self) -> &BoardStructure<SubBoard> {
+        &self.structure
+    }
+
+    pub fn structure_mut(&mut self) -> &mut BoardStructure<SubBoard> {
         &mut self.structure
     }
 
     pub fn make_move(&mut self, player: Player, sub_x: usize, sub_y: usize, x: usize, y: usize) -> (Option<usize>, Option<usize>, Option<Player>) {
-        self.structure()
+        self.structure_mut()
             .get_mut(sub_x, sub_y)
-            .structure()
+            .structure_mut()
             .set_owner_at(x.clone(), y.clone(), Some(player));
 
         let mut winning_player: Option<Player> = None;
-        match self.structure().get_mut(sub_x, sub_y).structure().check_winner(x, y) {
+        match self.structure_mut().get_mut(sub_x, sub_y).structure().check_winner(x, y) {
             None => {},
             Some(player) => {
-                self.structure().get_mut(sub_x, sub_y).set_owner(Some(player));
+                self.structure_mut().get_mut(sub_x, sub_y).set_owner(Some(player));
 
                 match self.structure.check_winner(sub_x, sub_y) {
                     None => {},
@@ -56,7 +60,11 @@ impl SubBoard {
         SubBoard { structure: <BoardStructure<Square>>::new(), owner: None }
     }
 
-    pub fn structure(&mut self) -> &mut BoardStructure<Square> {
+    pub fn structure(&self) -> &BoardStructure<Square> {
+        &self.structure
+    }
+
+    pub fn structure_mut(&mut self) -> &mut BoardStructure<Square> {
         &mut self.structure
     }
 }
