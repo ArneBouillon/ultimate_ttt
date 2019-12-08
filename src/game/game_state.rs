@@ -68,7 +68,7 @@ impl GameState {
             None => {
                 (0..3).flat_map(|sub_x| {
                     let v: Vec<Action> = (0..3).flat_map(|sub_y|
-                        if self.board().get(sub_x, sub_y) {
+                        if self.board().get(sub_x, sub_y).owner() == None {
                             self.possible_actions_sub(sub_x, sub_y, true)
                         } else {
                             Vec::new()

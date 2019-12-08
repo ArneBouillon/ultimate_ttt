@@ -6,14 +6,14 @@ use crate::game::game_state::GameState;
 #[derive(Clone)]
 pub struct Node<'a> {
     parent: Option<&'a Node<'a>>,
-    children: HashMap<Action, Option<Node<'a>>>,
+    children: Option<HashMap<Action, Option<Node<'a>>>>,
     action: Option<Action>,
     visits: usize,
     value: f64,
 }
 
 impl<'a> Node<'a> {
-    pub fn new(parent: Option<&'a Node<'a>>, children: HashMap<Action, Option<Node<'a>>>, action: Option<Action>) -> Node<'a> {
+    pub fn new(parent: Option<&'a Node<'a>>, children: Option<HashMap<Action, Option<Node<'a>>>>, action: Option<Action>) -> Node<'a> {
         Node {
             parent,
             children,
@@ -29,6 +29,29 @@ impl<'a> Node<'a> {
 
     pub fn search_weight(&self) -> f64 {
         self.weight() + (2. * (self.parent.unwrap().visits as f64).ln() / self.visits as f64).sqrt()
+    }
+
+    pub fn fully_expanded(&self) -> bool {
+        for value in self.children.unwrap().values() {
+            if let None = value {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    pub fn expand(&'a mut self) -> Node<'a> {
+        for (key, value) in self.children.unwrap().iter_mut() {
+            if let None = value {
+                let new_node = Node::new(Some(&self), None, Some(key.clone()));
+                self.children.unwrap().insert(*key, Some(new_node));
+
+                return new_node;
+            }
+        }
+
+        panic!("All children were already expanded!");
     }
 }
 
@@ -56,7 +79,7 @@ pub fn mcts() {
     let game_state = GameState::new();
     let root = Node::new(
         None,
-        action_hash_map(&game_state),
+        Some(action_hash_map(&game_state)),
         None,
     );
     let tree = Tree::new(root);
