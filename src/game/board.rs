@@ -3,6 +3,7 @@ use crate::game::player::GameResult;
 
 pub trait Owned {
     fn owner(&self) -> Option<Player>;
+
     fn set_owner(&mut self, owner: Option<Player>);
 }
 
@@ -13,7 +14,7 @@ pub struct Board {
 impl Board {
     pub fn new() -> Board {
         Board {
-            structure: <BoardStructure<SubBoard>>::new()
+            structure: <BoardStructure<SubBoard>>::new(),
         }
     }
 
@@ -41,19 +42,21 @@ impl Board {
         let mut result: Option<GameResult> = None;
 
         self.get_mut(sub_x, sub_y).set_owner(player);
-        match self.get_mut(sub_x, sub_y).structure().check_winner(x, y) {
-            None => {},
-            Some(player) => {
-                match self.structure().check_winner(sub_x, sub_y) {
-                    None => {},
-                    Some(player) => result = Some(player.wins()),
-                };
+        if player != None {
+            match self.get_mut(sub_x, sub_y).structure().check_winner(x, y) {
+                None => {},
+                Some(player) => {
+                    match self.structure().check_winner(sub_x, sub_y) {
+                        None => {},
+                        Some(player) => result = Some(player.wins()),
+                    }
+                }
             }
-        };
+        }
 
         match self.get(x, y).owner() {
-            None => (Some(x), Some(y), result),
-            Some(_) => (None, None, result),
+            None    => (Some(x), Some(y), result),
+            Some(_) => (None,    None,    result),
         }
     }
 }
@@ -143,7 +146,7 @@ impl<T: Owned> BoardStructure<T> {
             return self.get(0, last_y).owner();
         }
 
-        return None;
+        None
     }
 }
 

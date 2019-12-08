@@ -48,7 +48,7 @@ impl GameState {
         self.current_player = self.current_player.next();
         self.moves += 1;
 
-        if self.moves == 81 && None == result {
+        if self.moves == 81 && result == None {
             Some(GameResult::Draw)
         } else {
             result
