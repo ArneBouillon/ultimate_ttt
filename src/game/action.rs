@@ -1,5 +1,6 @@
 use crate::game::game_state::GameState;
 use crate::game::player::GameResult;
+use crate::game::board::Owned;
 
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct Action {
@@ -35,6 +36,9 @@ impl Action {
             game_state.current_sub_x = Some(self.sub_x);
             game_state.current_sub_y = Some(self.sub_y);
         };
+
+        game_state.board_mut().get_mut(self.sub_x, self.sub_y).set_owner(None);
+
         game_state.moves -= 1;
     }
 }
