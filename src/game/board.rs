@@ -41,11 +41,12 @@ impl Board {
 
         let mut result: Option<GameResult> = None;
 
-        self.get_mut(sub_x, sub_y).set_owner(player);
         if player != None {
             match self.get_mut(sub_x, sub_y).structure().check_winner(x, y) {
                 None => {},
-                Some(_) => {
+                Some(player) => {
+                    self.get_mut(sub_x, sub_y).set_owner(Some(player));
+
                     match self.structure().check_winner(sub_x, sub_y) {
                         None => {},
                         Some(player) => result = Some(player.wins()),
