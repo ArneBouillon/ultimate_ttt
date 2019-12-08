@@ -4,23 +4,31 @@ use crate::game::action::Action;
 use crate::game::game_state::GameState;
 
 #[derive(Clone)]
-pub struct Node<'a> {
-    parent: Option<&'a Node<'a>>,
-    children: Option<HashMap<Action, Option<Node<'a>>>>,
+pub struct Node {
+    children: Option<HashMap<Action, Option<Node>>>,
     action: Option<Action>,
+    parent_visits: usize,
     visits: usize,
     value: f64,
 }
 
-impl<'a> Node<'a> {
-    pub fn new(parent: Option<&'a Node<'a>>, children: Option<HashMap<Action, Option<Node<'a>>>>, action: Option<Action>) -> Node<'a> {
+impl Node {
+    pub fn new(children: Option<HashMap<Action, Option<Node>>>, action: Option<Action>, parent_visits: usize) -> Node {
         Node {
-            parent,
             children,
             action,
+            parent_visits,
             visits: 0,
             value: 0.,
         }
+    }
+
+    pub fn children(&self) -> &Option<HashMap<Action, Option<Node>>> {
+        &self.children
+    }
+
+    pub fn children_mut(&mut self) -> &mut Option<HashMap<Action, Option<Node>>> {
+        &mut self.children
     }
 
     pub fn weight(&self) -> f64 {
@@ -28,26 +36,43 @@ impl<'a> Node<'a> {
     }
 
     pub fn search_weight(&self) -> f64 {
-        self.weight() + (2. * (self.parent.unwrap().visits as f64).ln() / self.visits as f64).sqrt()
+        self.weight() + (2. * (self.parent_visits as f64).ln() / self.visits as f64).sqrt()
     }
 
     pub fn fully_expanded(&self) -> bool {
-        for value in self.children.unwrap().values() {
-            if let None = value {
-                return false;
+        match self.children() {
+            None => false,
+            Some(children) => {
+                for value in children.values() {
+                    if let None = value {
+                        return false;
+                    }
+                }
+
+                true
+            }
+        }
+    }
+
+    pub fn expand(&mut self, game_state: &GameState) -> Action {
+        if let None = self.children() {
+            self.children = Some(action_hash_map(game_state));
+        }
+
+        let mut unexpanded_action: Option<Action> = None;
+
+        if let Some(children) = self.children() {
+            for (key, value) in children.iter() {
+                if let None = value { unexpanded_action = Some(key.clone()); }
             }
         }
 
-        return true;
-    }
+        if let Some(action) = unexpanded_action {
+            let new_node = Node::new(None, Some(action.clone()), self.visits);
 
-    pub fn expand(&'a mut self) -> Node<'a> {
-        for (key, value) in self.children.unwrap().iter_mut() {
-            if let None = value {
-                let new_node = Node::new(Some(&self), None, Some(key.clone()));
-                self.children.unwrap().insert(*key, Some(new_node));
-
-                return new_node;
+            if let Some(children) = self.children_mut() {
+                children.insert(action.clone(), Some(new_node));
+                return action;
             }
         }
 
@@ -55,19 +80,19 @@ impl<'a> Node<'a> {
     }
 }
 
-pub struct Tree<'a> {
-    root: Node<'a>,
+pub struct Tree {
+    root: Node,
 }
 
-impl<'a> Tree<'a> {
-    pub fn new(root: Node<'a>) -> Tree<'a> {
+impl Tree {
+    pub fn new(root: Node) -> Tree {
         Tree {
             root,
         }
     }
 }
 
-fn action_hash_map<'a>(game_state: &GameState) -> HashMap<Action, Option<Node<'a>>> {
+fn action_hash_map(game_state: &GameState) -> HashMap<Action, Option<Node>> {
     game_state.possible_actions()
         .iter()
         .map(|action| action.clone())
@@ -78,9 +103,9 @@ fn action_hash_map<'a>(game_state: &GameState) -> HashMap<Action, Option<Node<'a
 pub fn mcts() {
     let game_state = GameState::new();
     let root = Node::new(
-        None,
         Some(action_hash_map(&game_state)),
         None,
+        0,
     );
     let tree = Tree::new(root);
 

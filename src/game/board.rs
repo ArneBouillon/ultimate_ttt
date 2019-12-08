@@ -45,7 +45,7 @@ impl Board {
         if player != None {
             match self.get_mut(sub_x, sub_y).structure().check_winner(x, y) {
                 None => {},
-                Some(player) => {
+                Some(_) => {
                     match self.structure().check_winner(sub_x, sub_y) {
                         None => {},
                         Some(player) => result = Some(player.wins()),
