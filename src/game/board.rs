@@ -33,17 +33,17 @@ impl Board {
         self.structure_mut().get_mut(x, y)
     }
 
-    pub fn make_move(&mut self, player: Player, sub_x: usize, sub_y: usize, x: usize, y: usize) -> (Option<usize>, Option<usize>, Option<GameResult>) {
+    pub fn make_move(&mut self, player: Option<Player>, sub_x: usize, sub_y: usize, x: usize, y: usize) -> (Option<usize>, Option<usize>, Option<GameResult>) {
         self.get_mut(sub_x, sub_y)
             .structure_mut()
-            .set_owner_at(x.clone(), y.clone(), Some(player));
+            .set_owner_at(x.clone(), y.clone(), player);
 
         let mut result: Option<GameResult> = None;
+
+        self.get_mut(sub_x, sub_y).set_owner(player);
         match self.get_mut(sub_x, sub_y).structure().check_winner(x, y) {
             None => {},
             Some(player) => {
-                self.get_mut(sub_x, sub_y).set_owner(Some(player));
-
                 match self.structure().check_winner(sub_x, sub_y) {
                     None => {},
                     Some(player) => result = Some(player.wins()),

@@ -37,7 +37,7 @@ impl GameState {
     pub fn make_move(&mut self, sub_x: usize, sub_y: usize, x: usize, y: usize) -> Option<GameResult> {
         let current_player = self.current_player();
 
-        let (new_x, new_y, result) = self.board_mut().make_move(current_player,
+        let (new_x, new_y, result) = self.board_mut().make_move(Some(current_player),
                                                                 sub_x,
                                                                 sub_y,
                                                                 x.clone(),
@@ -68,7 +68,11 @@ impl GameState {
             None => {
                 (0..3).flat_map(|sub_x| {
                     let v: Vec<Action> = (0..3).flat_map(|sub_y|
-                        self.possible_actions_sub(sub_x, sub_y, true)
+                        if self.board().get(sub_x, sub_y) {
+                            self.possible_actions_sub(sub_x, sub_y, true)
+                        } else {
+                            Vec::new()
+                        }
                     ).collect();
 
                     v
