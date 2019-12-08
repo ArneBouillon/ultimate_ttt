@@ -2,10 +2,12 @@ use std::collections::HashMap;
 
 use crate::game::action::Action;
 use crate::game::game_state::GameState;
+use crate::util::non_nan::NonNan;
 
 #[derive(Clone)]
 pub struct Node {
-    children: Option<HashMap<Action, Option<Node>>>,
+    children: HashMap<Action, Option<Node>>,
+    children_constructed: bool,
     action: Option<Action>,
     parent_visits: usize,
     visits: usize,
@@ -13,9 +15,10 @@ pub struct Node {
 }
 
 impl Node {
-    pub fn new(children: Option<HashMap<Action, Option<Node>>>, action: Option<Action>, parent_visits: usize) -> Node {
+    pub fn new(action: Option<Action>, parent_visits: usize) -> Node {
         Node {
-            children,
+            children: HashMap::new(),
+            children_constructed: false,
             action,
             parent_visits,
             visits: 0,
@@ -23,12 +26,25 @@ impl Node {
         }
     }
 
-    pub fn children(&self) -> &Option<HashMap<Action, Option<Node>>> {
+    pub fn children(&self) -> &HashMap<Action, Option<Node>> {
         &self.children
     }
 
-    pub fn children_mut(&mut self) -> &mut Option<HashMap<Action, Option<Node>>> {
+    pub fn children_mut(&mut self) -> &mut HashMap<Action, Option<Node>> {
         &mut self.children
+    }
+
+    pub fn best_child_mut(&mut self) -> Action {
+        let (action, _) = &mut self.children_mut().iter().max_by_key(|(_, v)| {
+            let weight = match v {
+                None => panic!("panic!"),
+                Some(node) => node.search_weight(),
+            };
+
+            NonNan::new(weight).unwrap()
+        }).unwrap();
+
+        action.clone()
     }
 
     pub fn weight(&self) -> f64 {
@@ -40,40 +56,34 @@ impl Node {
     }
 
     pub fn fully_expanded(&self) -> bool {
-        match self.children() {
-            None => false,
-            Some(children) => {
-                for value in children.values() {
-                    if let None = value {
-                        return false;
-                    }
+        if self.children_constructed {
+            for value in self.children().values() {
+                if let None = value {
+                    return false;
                 }
-
-                true
             }
+            true
+        } else {
+            false
         }
     }
 
     pub fn expand(&mut self, game_state: &GameState) -> Action {
-        if let None = self.children() {
-            self.children = Some(action_hash_map(game_state));
+        if !self.children_constructed {
+            self.children = action_hash_map(game_state);
         }
 
         let mut unexpanded_action: Option<Action> = None;
 
-        if let Some(children) = self.children() {
-            for (key, value) in children.iter() {
-                if let None = value { unexpanded_action = Some(key.clone()); }
-            }
+        for (key, value) in self.children().iter() {
+            if let None = value { unexpanded_action = Some(key.clone()); }
         }
 
         if let Some(action) = unexpanded_action {
-            let new_node = Node::new(None, Some(action.clone()), self.visits);
+            let new_node = Node::new(Some(action.clone()), self.visits);
 
-            if let Some(children) = self.children_mut() {
-                children.insert(action.clone(), Some(new_node));
-                return action;
-            }
+            self.children_mut().insert(action.clone(), Some(new_node));
+            return action;
         }
 
         panic!("All children were already expanded!");
@@ -100,10 +110,23 @@ fn action_hash_map(game_state: &GameState) -> HashMap<Action, Option<Node>> {
         .collect()
 }
 
-pub fn mcts() {
+pub fn mcts_rec(root: &mut Node, game_state: &mut GameState) {
+    if root.fully_expanded() {
+        let action = root.best_child_mut();
+        let best_child = root.children_mut().get_mut(&action).unwrap();
+
+        match best_child {
+            Some(best_child) => mcts_rec(best_child, game_state),
+            None => panic!("panic!"),
+        }
+    } else {
+        let action = root.expand(game_state);
+    }
+}
+
+pub fn mcts(credits: usize) {
     let game_state = GameState::new();
     let root = Node::new(
-        Some(action_hash_map(&game_state)),
         None,
         0,
     );

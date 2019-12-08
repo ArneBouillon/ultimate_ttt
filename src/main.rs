@@ -3,7 +3,7 @@ use ultimate_ttt::ai::mcts::mcts;
 
 fn main() {
     let gui = GUI::new();
-    mcts();
+    mcts(1000);
 
     gui.play_pvp();
 }
