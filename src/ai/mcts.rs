@@ -44,15 +44,19 @@ impl<'a> Tree<'a> {
     }
 }
 
+fn action_hash_map<'a>(game_state: &GameState) -> HashMap<Action, Option<Node<'a>>> {
+    game_state.possible_actions()
+        .iter()
+        .map(|action| action.clone())
+        .zip(None)
+        .collect()
+}
+
 pub fn mcts() {
     let game_state = GameState::new();
     let root = Node::new(
         None,
-        game_state.possible_actions()
-            .iter()
-            .map(|action| action.clone())
-            .zip(None)
-            .collect(),
+        action_hash_map(&game_state),
         None,
     );
     let tree = Tree::new(root);

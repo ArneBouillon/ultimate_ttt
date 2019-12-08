@@ -1,4 +1,5 @@
 use super::player::Player;
+use crate::game::player::GameResult;
 
 pub trait Owned {
     fn owner(&self) -> Option<Player>;
@@ -24,32 +25,40 @@ impl Board {
         &mut self.structure
     }
 
-    pub fn make_move(&mut self, player: Player, sub_x: usize, sub_y: usize, x: usize, y: usize) -> (Option<usize>, Option<usize>, Option<Player>) {
-        self.structure_mut()
-            .get_mut(sub_x, sub_y)
+    pub fn get(&self, x: usize, y: usize) -> &SubBoard {
+        self.structure().get(x, y)
+    }
+
+    pub fn get_mut(&mut self, x: usize, y: usize) -> &mut SubBoard {
+        self.structure_mut().get_mut(x, y)
+    }
+
+    pub fn make_move(&mut self, player: Player, sub_x: usize, sub_y: usize, x: usize, y: usize) -> (Option<usize>, Option<usize>, Option<GameResult>) {
+        self.get_mut(sub_x, sub_y)
             .structure_mut()
             .set_owner_at(x.clone(), y.clone(), Some(player));
 
-        let mut winning_player: Option<Player> = None;
-        match self.structure_mut().get_mut(sub_x, sub_y).structure().check_winner(x, y) {
+        let mut result: Option<GameResult> = None;
+        match self.get_mut(sub_x, sub_y).structure().check_winner(x, y) {
             None => {},
             Some(player) => {
-                self.structure_mut().get_mut(sub_x, sub_y).set_owner(Some(player));
+                self.get_mut(sub_x, sub_y).set_owner(Some(player));
 
-                match self.structure.check_winner(sub_x, sub_y) {
+                match self.structure().check_winner(sub_x, sub_y) {
                     None => {},
-                    Some(player) => winning_player = Some(player),
+                    Some(player) => result = Some(player.wins()),
                 };
             }
         };
 
-        match self.structure().get(x, y).owner() {
-            None => (Some(x), Some(y), winning_player),
-            Some(_) => (None, None, winning_player),
+        match self.get(x, y).owner() {
+            None => (Some(x), Some(y), result),
+            Some(_) => (None, None, result),
         }
     }
 }
 
+#[derive(Copy, Clone)]
 pub struct SubBoard {
     pub structure: BoardStructure<Square>,
     owner: Option<Player>,
@@ -67,6 +76,14 @@ impl SubBoard {
     pub fn structure_mut(&mut self) -> &mut BoardStructure<Square> {
         &mut self.structure
     }
+
+    pub fn get(&self, x: usize, y: usize) -> &Square {
+        self.structure().get(x, y)
+    }
+
+    pub fn get_mut(&mut self, x: usize, y: usize) -> &mut Square {
+        self.structure_mut().get_mut(x, y)
+    }
 }
 
 impl Owned for SubBoard {
@@ -79,6 +96,7 @@ impl Owned for SubBoard {
     }
 }
 
+#[derive(Copy, Clone)]
 pub struct BoardStructure<T: Owned> {
     items: [T; 9],
 }
@@ -132,7 +150,7 @@ impl<T: Owned> BoardStructure<T> {
 impl BoardStructure<SubBoard> {
     pub fn new() -> BoardStructure<SubBoard> {
         BoardStructure {
-            items: [SubBoard::new(), SubBoard::new(), SubBoard::new(), SubBoard::new(), SubBoard::new(), SubBoard::new(), SubBoard::new(), SubBoard::new(), SubBoard::new()]
+            items: [SubBoard::new(); 9]
         }
     }
 }
@@ -140,11 +158,12 @@ impl BoardStructure<SubBoard> {
 impl BoardStructure<Square> {
     pub fn new() -> BoardStructure<Square> {
         BoardStructure {
-            items: [Square::new(), Square::new(), Square::new(), Square::new(), Square::new(), Square::new(), Square::new(), Square::new(), Square::new()]
+            items: [Square::new(); 9]
         }
     }
 }
 
+#[derive(Copy, Clone)]
 pub struct Square {
     owner: Option<Player>,
 }
