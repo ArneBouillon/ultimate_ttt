@@ -121,6 +121,9 @@ pub fn mcts_rec(root: &mut Node, game_state: &mut GameState) {
         }
     } else {
         let action = root.expand(game_state);
+        let new_child = root.children_mut().get_mut(&action).unwrap();
+
+
     }
 }
 

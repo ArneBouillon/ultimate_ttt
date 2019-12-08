@@ -3,6 +3,8 @@ use super::player::Player;
 use super::action::Action;
 use crate::game::player::GameResult;
 
+use rand::seq::SliceRandom;
+
 pub struct GameState {
     pub board: Board,
     pub current_player: Player,
@@ -55,8 +57,18 @@ impl GameState {
         }
     }
 
-    pub fn play_randomly(&mut self) -> Option<Player> {
-        None
+    pub fn play_randomly(&mut self) -> GameResult {
+        let actions = self.possible_actions();
+        let action = actions.choose(&mut rand::thread_rng()).unwrap();
+
+        let action_result = action.apply(self);
+        let result = match action_result {
+            None => self.play_randomly(),
+            Some(action_result) => action_result,
+        };
+        action.unapply(self);
+
+        result
     }
 
     pub fn possible_actions(&self) -> Vec<Action> {
