@@ -2,10 +2,13 @@ use std::collections::HashMap;
 
 use crate::game::action::Action;
 use crate::game::game_state::GameState;
+use crate::game::player::Player;
+
 use crate::util::non_nan::NonNan;
 
 #[derive(Clone)]
 pub struct Node {
+    player: Player,
     children: HashMap<Action, Option<Node>>,
     children_constructed: bool,
     action: Option<Action>,
@@ -15,8 +18,9 @@ pub struct Node {
 }
 
 impl Node {
-    pub fn new(action: Option<Action>, parent_visits: usize) -> Node {
+    pub fn new(player: Player, action: Option<Action>, parent_visits: usize) -> Node {
         Node {
+            player,
             children: HashMap::new(),
             children_constructed: false,
             action,
@@ -37,7 +41,7 @@ impl Node {
     pub fn best_child_mut(&mut self) -> Action {
         let (action, _) = &mut self.children_mut().iter().max_by_key(|(_, v)| {
             let weight = match v {
-                None => panic!("panic!"),
+                None => panic!("Unexpanded child!"),
                 Some(node) => node.search_weight(),
             };
 
@@ -76,28 +80,19 @@ impl Node {
         let mut unexpanded_action: Option<Action> = None;
 
         for (key, value) in self.children().iter() {
-            if let None = value { unexpanded_action = Some(key.clone()); }
+            if let None = value {
+                unexpanded_action = Some(key.clone());
+                break;
+            }
         }
 
         if let Some(action) = unexpanded_action {
-            let new_node = Node::new(Some(action.clone()), self.visits);
+            let new_node = Node::new(self.player.next(), Some(action.clone()), self.visits);
 
             self.children_mut().insert(action.clone(), Some(new_node));
             return action;
-        }
-
-        panic!("All children were already expanded!");
-    }
-}
-
-pub struct Tree {
-    root: Node,
-}
-
-impl Tree {
-    pub fn new(root: Node) -> Tree {
-        Tree {
-            root,
+        } else {
+            panic!("All children were already expanded!");
         }
     }
 }
@@ -115,25 +110,31 @@ pub fn mcts_rec(root: &mut Node, game_state: &mut GameState) {
         let action = root.best_child_mut();
         let best_child = root.children_mut().get_mut(&action).unwrap();
 
-        match best_child {
+        action.apply(game_state);
+        let result = match best_child {
             Some(best_child) => mcts_rec(best_child, game_state),
-            None => panic!("panic!"),
-        }
+            None => panic!("Unexpanded child!"),
+        };
+        action.unapply(game_state);
+
+        return result;
     } else {
         let action = root.expand(game_state);
         let new_child = root.children_mut().get_mut(&action).unwrap();
 
-
+        action.apply(game_state);
+        let result = game_state.play_randomly();
+        action.unapply(game_state);
     }
 }
 
 pub fn mcts(credits: usize) {
-    let game_state = GameState::new();
-    let root = Node::new(
+    let mut game_state = GameState::new();
+    let mut root = Node::new(
+        Player::Player1,
         None,
         0,
     );
-    let tree = Tree::new(root);
 
-
+//    mcts_rec(&mut root, &mut game_state);
 }
