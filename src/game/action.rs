@@ -28,6 +28,7 @@ impl Action {
 
     pub fn unapply(&self, game_state: &mut GameState) {
         game_state.board_mut().make_move(None, self.sub_x, self.sub_y, self.x, self.y);
+        game_state.current_player = game_state.current_player().next();
 
         if self.full_board {
             game_state.current_sub_x = None;

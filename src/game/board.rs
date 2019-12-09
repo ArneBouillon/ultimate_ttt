@@ -1,4 +1,3 @@
-use super::player::Player;
 use crate::game::player::GameResult;
 
 pub trait Owned {

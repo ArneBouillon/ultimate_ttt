@@ -4,7 +4,6 @@ use super::action::Action;
 use crate::game::player::GameResult;
 
 use rand::seq::SliceRandom;
-use crate::gui::GUI;
 
 pub struct GameState {
     pub board: Board,
@@ -67,7 +66,6 @@ impl GameState {
             None => self.play_randomly(),
             Some(action_result) => action_result,
         };
-        action.unapply(self);
 
         result
     }

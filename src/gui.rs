@@ -1,6 +1,6 @@
 use crate::game::game_state::GameState;
 use crate::game::board::Owned;
-use crate::game::player::{Player, GameResult};
+use crate::game::player::GameResult;
 use std::io::stdin;
 use crate::game::action::Action;
 use crate::ai::mcts::mcts;
