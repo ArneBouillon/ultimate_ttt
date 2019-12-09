@@ -48,7 +48,7 @@ impl GameState {
 
         self.current_sub_x = new_x;
         self.current_sub_y = new_y;
-        self.current_player = self.current_player.next();
+        self.current_player = self.current_player().next();
         self.moves += 1;
 
         if self.moves == 81 && result == None {

@@ -6,27 +6,27 @@ use crate::game::player::{Player, GameResult};
 
 use crate::util::non_nan::NonNan;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Node {
+    visits: usize,
+    value: f64,
     player: Player,
     children: HashMap<Action, Option<Node>>,
     children_constructed: bool,
     action: Option<Action>,
     parent_visits: usize,
-    visits: usize,
-    value: f64,
 }
 
 impl Node {
     pub fn new(player: Player, action: Option<Action>, parent_visits: usize) -> Node {
         Node {
+            visits: 0,
+            value: 0.,
             player,
             children: HashMap::new(),
             children_constructed: false,
             action,
             parent_visits,
-            visits: 0,
-            value: 0.,
         }
     }
 
@@ -38,10 +38,10 @@ impl Node {
         &mut self.children
     }
 
-    pub fn best_child_mut(&mut self) -> Action {
-        let (action, _) = &mut self.children_mut().iter().max_by_key(|(_, v)| {
+    pub fn best_child(&self) -> Action {
+        let (action, _) = self.children().iter().max_by_key(|(_, v)| {
             let weight = match v {
-                None => panic!("Unexpanded child!"),
+                None => 0.,
                 Some(node) => node.search_weight(),
             };
 
@@ -118,7 +118,7 @@ fn action_hash_map(game_state: &GameState) -> HashMap<Action, Option<Node>> {
 pub fn mcts_rec(root: &mut Node, game_state: &mut GameState) -> GameResult {
     let result;
     if root.fully_expanded() {
-        let action = root.best_child_mut();
+        let action = root.best_child();
         let best_child = root.children_mut().get_mut(&action).unwrap();
 
         action.apply(game_state);
@@ -127,6 +127,11 @@ pub fn mcts_rec(root: &mut Node, game_state: &mut GameState) -> GameResult {
             None => panic!("Unexpanded child!"),
         };
         action.unapply(game_state);
+
+        match best_child {
+            Some(best_child) => best_child.update(&result),
+            None => panic!("Unexpanded child!"),
+        };
     } else {
         let action = root.expand(game_state);
         let new_child = root.children_mut().get_mut(&action).unwrap();
@@ -134,19 +139,27 @@ pub fn mcts_rec(root: &mut Node, game_state: &mut GameState) -> GameResult {
         action.apply(game_state);
         result = game_state.play_randomly();
         action.unapply(game_state);
+
+        match new_child {
+            Some(new_child) => new_child.update(&result),
+            None => panic!("Unexpanded child!"),
+        }
     }
 
-    root.update(&result);
     result
 }
 
-pub fn mcts(credits: usize) {
-    let mut game_state = GameState::new();
+pub fn mcts(game_state: &mut GameState, credits: usize) -> Action {
     let mut root = Node::new(
-        Player::Player1,
+        game_state.current_player().next(),
         None,
         0,
     );
 
-    mcts_rec(&mut root, &mut game_state);
+    for _ in 0..credits {
+        let result = &mcts_rec(&mut root, game_state);
+        root.update(&result);
+    }
+
+    root.best_child()
 }

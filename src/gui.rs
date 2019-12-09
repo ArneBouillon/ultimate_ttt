@@ -3,6 +3,7 @@ use crate::game::board::Owned;
 use crate::game::player::{Player, GameResult};
 use std::io::stdin;
 use crate::game::action::Action;
+use crate::ai::mcts::mcts;
 
 pub struct GUI {
     game_state: GameState,
@@ -19,7 +20,7 @@ impl GUI {
 
     pub fn game_state_mut(&mut self) -> &mut GameState { &mut self.game_state }
 
-    pub fn play_pvp(mut self) -> Option<GameResult> {
+    pub fn play_pvp(&mut self) -> GameResult {
         loop {
             println!("{}", self.display());
 
@@ -33,7 +34,7 @@ impl GUI {
                         None => {},
                         Some(result) => {
                             println!("Result: {}", result.to_string());
-                            return Some(result);
+                            return result;
                         }
                     }
 
@@ -41,6 +42,43 @@ impl GUI {
                 }
 
                 println!("\nInvalid input!\n");
+            }
+        }
+    }
+
+    pub fn play_pvc(&mut self) -> GameResult {
+        loop {
+            println!("{}", self.display());
+
+            loop {
+                let action = self.get_move();
+                let current_sub_x = self.game_state.current_sub_x;
+                let current_sub_y = self.game_state.current_sub_y;
+
+                if current_sub_x == None || Some(action.sub_x) == current_sub_x && Some(action.sub_y) == current_sub_y {
+                    match action.apply(self.game_state_mut()) {
+                        None => {},
+                        Some(result) => {
+                            println!("Result: {}", result.to_string());
+                            return result;
+                        }
+                    }
+
+                    break;
+                }
+
+                println!("\nInvalid input!\n");
+            }
+
+            println!("{}", self.display());
+
+            let ai_action = mcts(self.game_state_mut(), 4);
+            match ai_action.apply(self.game_state_mut()) {
+                None => {},
+                Some(result) => {
+                    println!("Result: {}", result.to_string());
+                    return result;
+                }
             }
         }
     }

@@ -54,11 +54,9 @@ impl Board {
                 }
             }
         }
-
-        if self.get(x, y).result() == None && self.get(x, y).structure().items.iter().any(|s| s.result() == None) {
-            (Some(x), Some(y), game_result)
-        } else {
-            (None, None, game_result)
+        match self.get(x, y).result() {
+            None => (Some(x), Some(y), game_result),
+            Some(_) => (None, None, game_result),
         }
     }
 }
