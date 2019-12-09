@@ -39,7 +39,5 @@ impl Action {
         };
 
         game_state.board_mut().get_mut(self.sub_x, self.sub_y).set_result(None);
-
-        game_state.moves -= 1;
     }
 }

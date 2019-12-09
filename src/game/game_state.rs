@@ -10,7 +10,6 @@ pub struct GameState {
     pub current_player: Player,
     pub current_sub_x: Option<usize>,
     pub current_sub_y: Option<usize>,
-    pub moves: usize,
 }
 
 impl GameState {
@@ -20,7 +19,6 @@ impl GameState {
             current_player: Player::Player1,
             current_sub_x: None,
             current_sub_y: None,
-            moves: 0,
         }
     }
 
@@ -48,13 +46,8 @@ impl GameState {
         self.current_sub_x = new_x;
         self.current_sub_y = new_y;
         self.current_player = self.current_player().next();
-        self.moves += 1;
 
-        if self.moves == 81 && result == None {
-            Some(GameResult::Draw)
-        } else {
-            result
-        }
+        result
     }
 
     pub fn play_randomly(&mut self) -> GameResult {
