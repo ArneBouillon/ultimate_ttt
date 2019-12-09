@@ -66,6 +66,7 @@ impl GameState {
             None => self.play_randomly(),
             Some(action_result) => action_result,
         };
+        action.unapply(self);
 
         result
     }

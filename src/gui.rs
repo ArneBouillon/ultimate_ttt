@@ -72,7 +72,7 @@ impl GUI {
 
             println!("{}", self.display());
 
-            let ai_action = mcts(self.game_state_mut(), 4);
+            let ai_action = mcts(self.game_state_mut(), 100);
             match ai_action.apply(self.game_state_mut()) {
                 None => {},
                 Some(result) => {
