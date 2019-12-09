@@ -4,6 +4,7 @@ use super::action::Action;
 use crate::game::player::GameResult;
 
 use rand::seq::SliceRandom;
+use crate::gui::GUI;
 
 pub struct GameState {
     pub board: Board,
@@ -39,7 +40,7 @@ impl GameState {
     pub fn make_move(&mut self, sub_x: usize, sub_y: usize, x: usize, y: usize) -> Option<GameResult> {
         let current_player = self.current_player();
 
-        let (new_x, new_y, result) = self.board_mut().make_move(Some(current_player),
+        let (new_x, new_y, result) = self.board_mut().make_move(Some(current_player.wins()),
                                                                 sub_x,
                                                                 sub_y,
                                                                 x.clone(),
@@ -80,7 +81,7 @@ impl GameState {
             None => {
                 (0..3).flat_map(|sub_x| {
                     let v: Vec<Action> = (0..3).flat_map(|sub_y|
-                        if self.board().get(sub_x, sub_y).owner() == None {
+                        if self.board().get(sub_x, sub_y).result() == None {
                             self.possible_actions_sub(sub_x, sub_y, true)
                         } else {
                             Vec::new()
@@ -100,7 +101,7 @@ impl GameState {
 
         (0..3).flat_map(|x| {
             let v: Vec<Action> = (0..3).filter_map(|y|
-                match sub_board.get(x, y).owner() {
+                match sub_board.get(x, y).result() {
                     None => Some(Action::new(sub_x, sub_y, x, y, full_board)),
                     Some(_) => None,
                 }

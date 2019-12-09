@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::game::action::Action;
 use crate::game::game_state::GameState;
-use crate::game::player::Player;
+use crate::game::player::{Player, GameResult};
 
 use crate::util::non_nan::NonNan;
 
@@ -75,6 +75,7 @@ impl Node {
     pub fn expand(&mut self, game_state: &GameState) -> Action {
         if !self.children_constructed {
             self.children = action_hash_map(game_state);
+            self.children_constructed = true;
         }
 
         let mut unexpanded_action: Option<Action> = None;
@@ -95,37 +96,48 @@ impl Node {
             panic!("All children were already expanded!");
         }
     }
+
+    pub fn update(&mut self, result: &GameResult) {
+        self.visits += 1;
+        for node in self.children_mut().values_mut() {
+            if let Some(node) = node {
+                node.parent_visits += 1;
+            }
+        }
+        self.value += result.score(self.player);
+    }
 }
 
 fn action_hash_map(game_state: &GameState) -> HashMap<Action, Option<Node>> {
     game_state.possible_actions()
         .iter()
-        .map(|action| action.clone())
-        .zip(None)
+        .map(|action| (action.clone(), None))
         .collect()
 }
 
-pub fn mcts_rec(root: &mut Node, game_state: &mut GameState) {
+pub fn mcts_rec(root: &mut Node, game_state: &mut GameState) -> GameResult {
+    let result;
     if root.fully_expanded() {
         let action = root.best_child_mut();
         let best_child = root.children_mut().get_mut(&action).unwrap();
 
         action.apply(game_state);
-        let result = match best_child {
+        result = match best_child {
             Some(best_child) => mcts_rec(best_child, game_state),
             None => panic!("Unexpanded child!"),
         };
         action.unapply(game_state);
-
-        return result;
     } else {
         let action = root.expand(game_state);
         let new_child = root.children_mut().get_mut(&action).unwrap();
 
         action.apply(game_state);
-        let result = game_state.play_randomly();
+        result = game_state.play_randomly();
         action.unapply(game_state);
     }
+
+    root.update(&result);
+    result
 }
 
 pub fn mcts(credits: usize) {
@@ -136,5 +148,5 @@ pub fn mcts(credits: usize) {
         0,
     );
 
-//    mcts_rec(&mut root, &mut game_state);
+    mcts_rec(&mut root, &mut game_state);
 }

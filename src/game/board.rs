@@ -2,9 +2,9 @@ use super::player::Player;
 use crate::game::player::GameResult;
 
 pub trait Owned {
-    fn owner(&self) -> Option<Player>;
+    fn result(&self) -> Option<GameResult>;
 
-    fn set_owner(&mut self, owner: Option<Player>);
+    fn set_result(&mut self, owner: Option<GameResult>);
 }
 
 pub struct Board {
@@ -34,30 +34,31 @@ impl Board {
         self.structure_mut().get_mut(x, y)
     }
 
-    pub fn make_move(&mut self, player: Option<Player>, sub_x: usize, sub_y: usize, x: usize, y: usize) -> (Option<usize>, Option<usize>, Option<GameResult>) {
+    pub fn make_move(&mut self, result: Option<GameResult>, sub_x: usize, sub_y: usize, x: usize, y: usize) -> (Option<usize>, Option<usize>, Option<GameResult>) {
         self.get_mut(sub_x, sub_y)
             .structure_mut()
-            .set_owner_at(x.clone(), y.clone(), player);
+            .set_result_at(x.clone(), y.clone(), result);
 
-        let mut result: Option<GameResult> = None;
+        let mut game_result: Option<GameResult> = None;
 
-        if player != None {
-            match self.get_mut(sub_x, sub_y).structure().check_winner(x, y) {
+        if result != None {
+            match self.get_mut(sub_x, sub_y).structure().check_result(x, y) {
                 None => {},
-                Some(player) => {
-                    self.get_mut(sub_x, sub_y).set_owner(Some(player));
+                Some(result) => {
+                    self.get_mut(sub_x, sub_y).set_result(Some(result));
 
-                    match self.structure().check_winner(sub_x, sub_y) {
+                    match self.structure().check_result(sub_x, sub_y) {
                         None => {},
-                        Some(player) => result = Some(player.wins()),
+                        Some(result) => game_result = Some(result),
                     }
                 }
             }
         }
 
-        match self.get(x, y).owner() {
-            None    => (Some(x), Some(y), result),
-            Some(_) => (None,    None,    result),
+        if self.get(x, y).result() == None && self.get(x, y).structure().items.iter().any(|s| s.result() == None) {
+            (Some(x), Some(y), game_result)
+        } else {
+            (None, None, game_result)
         }
     }
 }
@@ -65,12 +66,12 @@ impl Board {
 #[derive(Copy, Clone)]
 pub struct SubBoard {
     pub structure: BoardStructure<Square>,
-    owner: Option<Player>,
+    result: Option<GameResult>,
 }
 
 impl SubBoard {
     pub fn new() -> SubBoard {
-        SubBoard { structure: <BoardStructure<Square>>::new(), owner: None }
+        SubBoard { structure: <BoardStructure<Square>>::new(), result: None }
     }
 
     pub fn structure(&self) -> &BoardStructure<Square> {
@@ -91,18 +92,18 @@ impl SubBoard {
 }
 
 impl Owned for SubBoard {
-    fn owner(&self) -> Option<Player> {
-        self.owner
+    fn result(&self) -> Option<GameResult> {
+        self.result
     }
 
-    fn set_owner(&mut self, owner: Option<Player>) {
-        self.owner = owner;
+    fn set_result(&mut self, result: Option<GameResult>) {
+        self.result = result;
     }
 }
 
 #[derive(Copy, Clone)]
 pub struct BoardStructure<T: Owned> {
-    items: [T; 9],
+    pub items: [T; 9],
 }
 
 impl<T: Owned> BoardStructure<T> {
@@ -114,40 +115,44 @@ impl<T: Owned> BoardStructure<T> {
         &mut self.items[3 * y + x]
     }
 
-    pub fn set_owner_at(&mut self, x: usize, y: usize, owner: Option<Player>) {
-        self.items.get_mut(3 * y + x).unwrap().set_owner(owner);
+    pub fn set_result_at(&mut self, x: usize, y: usize, result: Option<GameResult>) {
+        self.items.get_mut(3 * y + x).unwrap().set_result(result);
     }
 
-    pub fn check_winner(&self, last_x: usize, last_y: usize) -> Option<Player> {
+    pub fn check_result(&self, last_x: usize, last_y: usize) -> Option<GameResult> {
         if ((last_x == 1) as usize + (last_y == 1) as usize) != 1 {
             if last_x == last_y &&
-                self.get(0, 0).owner() == self.get(1, 1).owner() &&
-                self.get(0, 0).owner() == self.get(2, 2).owner() {
+                self.get(0, 0).result() == self.get(1, 1).result() &&
+                self.get(0, 0).result() == self.get(2, 2).result() {
 
-                return self.get(0, 0).owner();
+                return self.get(0, 0).result();
             }
 
             if last_x == 2 - last_y &&
-                self.get(0, 2).owner() == self.get(1, 1).owner() &&
-                self.get(0, 2).owner() == self.get(2, 0).owner() {
+                self.get(0, 2).result() == self.get(1, 1).result() &&
+                self.get(0, 2).result() == self.get(2, 0).result() {
 
-                return self.get(0, 2).owner();
+                return self.get(0, 2).result();
             }
         }
 
-        if self.get(last_x, 0).owner() == self.get(last_x, 1).owner() &&
-            self.get(last_x, 0).owner() == self.get(last_x, 2).owner() {
+        if self.get(last_x, 0).result() == self.get(last_x, 1).result() &&
+            self.get(last_x, 0).result() == self.get(last_x, 2).result() {
 
-            return self.get(last_x, 0).owner();
+            return self.get(last_x, 0).result();
         }
 
-        if self.get(0, last_y).owner() == self.get(1, last_y).owner() &&
-            self.get(0, last_y).owner() == self.get(2, last_y).owner() {
+        if self.get(0, last_y).result() == self.get(1, last_y).result() &&
+            self.get(0, last_y).result() == self.get(2, last_y).result() {
 
-            return self.get(0, last_y).owner();
+            return self.get(0, last_y).result();
         }
 
-        None
+        if self.items.iter().any(|item| item.result() == None) {
+            None
+        } else {
+            Some(GameResult::Draw)
+        }
     }
 }
 
@@ -169,21 +174,21 @@ impl BoardStructure<Square> {
 
 #[derive(Copy, Clone)]
 pub struct Square {
-    owner: Option<Player>,
+    result: Option<GameResult>,
 }
 
 impl Square {
     pub fn new() -> Square {
-        Square { owner: None }
+        Square { result: None }
     }
 }
 
 impl Owned for Square {
-    fn owner(&self) -> Option<Player> {
-        self.owner
+    fn result(&self) -> Option<GameResult> {
+        self.result
     }
 
-    fn set_owner(&mut self, owner: Option<Player>) {
-        self.owner = owner;
+    fn set_result(&mut self, result: Option<GameResult>) {
+        self.result = result;
     }
 }

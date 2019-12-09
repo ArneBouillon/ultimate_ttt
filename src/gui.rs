@@ -46,8 +46,12 @@ impl GUI {
     }
 
     pub fn display(&mut self) -> String {
-        let current_sub_x = self.game_state.current_sub_x;
-        let current_sub_y = self.game_state.current_sub_y;
+        GUI::display_static(self.game_state_mut())
+    }
+
+    pub fn display_static(game_state: &mut GameState) -> String {
+        let current_sub_x = game_state.current_sub_x;
+        let current_sub_y = game_state.current_sub_y;
 
         let mut string: String = String::new();
 
@@ -62,21 +66,21 @@ impl GUI {
                     for x in 0..3 {
                         string += "|";
 
-                        let player = self.game_state
+                        let result = game_state
                             .board
                             .structure()
                             .get(sub_x, sub_y)
                             .structure()
                             .get(x, y)
-                            .owner();
+                            .result();
 
-                        string += if player == Some(Player::Player1) {
-                                    "O"
-                                  } else if player == Some(Player::Player2) {
-                                    "X"
-                                  } else {
-                                    " "
-                                  }
+                        string += if result == Some(GameResult::Player1Wins) {
+                            "O"
+                        } else if result == Some(GameResult::Player2Wins) {
+                            "X"
+                        } else {
+                            " "
+                        }
                     }
 
                     string += "|";

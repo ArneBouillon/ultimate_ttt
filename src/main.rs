@@ -5,5 +5,5 @@ fn main() {
     let gui = GUI::new();
     mcts(1000);
 
-    gui.play_pvp();
+//    gui.play_pvp();
 }
