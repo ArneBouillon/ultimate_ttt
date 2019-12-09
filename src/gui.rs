@@ -1,7 +1,8 @@
+use std::io::stdin;
+
 use crate::game::game_state::GameState;
 use crate::game::board::Owned;
 use crate::game::player::GameResult;
-use std::io::stdin;
 use crate::game::action::Action;
 use crate::ai::mcts::mcts;
 
@@ -72,7 +73,7 @@ impl GUI {
 
             println!("{}", self.display());
 
-            let ai_action = mcts(self.game_state_mut(), 100);
+            let ai_action = mcts(self.game_state_mut(), 10000);
             match ai_action.apply(self.game_state_mut()) {
                 None => {},
                 Some(result) => {

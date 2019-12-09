@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::time::SystemTime;
 
 use crate::game::action::Action;
 use crate::game::game_state::GameState;
@@ -149,17 +150,21 @@ pub fn mcts_rec(root: &mut Node, game_state: &mut GameState) -> GameResult {
     result
 }
 
-pub fn mcts(game_state: &mut GameState, credits: usize) -> Action {
+pub fn mcts(game_state: &mut GameState, time: u128) -> Action {
     let mut root = Node::new(
         game_state.current_player().next(),
         None,
         0,
     );
 
-    for _ in 0..credits {
+    let start_time = SystemTime::now();
+    let mut count: usize = 0;
+    while SystemTime::now().duration_since(start_time).unwrap().as_millis() < time {
         let result = &mcts_rec(&mut root, game_state);
         root.update(&result);
+        count += 1;
     }
 
+    println!("Number of simulations: {}", count);
     root.best_child()
 }
