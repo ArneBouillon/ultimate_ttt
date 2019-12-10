@@ -5,6 +5,7 @@ use crate::game::board::Owned;
 use crate::game::player::GameResult;
 use crate::game::action::Action;
 use crate::ai::mcts::mcts;
+use crate::actor::Actor;
 
 pub struct GUI {
     game_state: GameState,
@@ -21,65 +22,24 @@ impl GUI {
 
     pub fn game_state_mut(&mut self) -> &mut GameState { &mut self.game_state }
 
-    pub fn play_pvp(&mut self) -> GameResult {
+    pub fn play(&mut self, player1: &mut Actor, player2: &mut Actor) -> GameResult {
         loop {
             println!("{}", self.display());
 
-            loop {
-                let action = self.get_move();
-                let current_sub_x = self.game_state.current_sub_x;
-                let current_sub_y = self.game_state.current_sub_y;
-
-                if current_sub_x == None || Some(action.sub_x) == current_sub_x && Some(action.sub_y) == current_sub_y {
-                    match action.apply(self.game_state_mut()) {
-                        None => {},
-                        Some(result) => {
-                            println!("Result: {}", result.to_string());
-                            return result;
-                        }
-                    }
-
-                    break;
-                }
-
-                println!("\nInvalid input!\n");
-            }
-        }
-    }
-
-    pub fn play_pvc(&mut self) -> GameResult {
-        loop {
-            println!("{}", self.display());
-
-            loop {
-                let action = self.get_move();
-                let current_sub_x = self.game_state.current_sub_x;
-                let current_sub_y = self.game_state.current_sub_y;
-
-                if current_sub_x == None || Some(action.sub_x) == current_sub_x && Some(action.sub_y) == current_sub_y {
-                    match action.apply(self.game_state_mut()) {
-                        None => {},
-                        Some(result) => {
-                            println!("Result: {}", result.to_string());
-                            return result;
-                        }
-                    }
-
-                    break;
-                }
-
-                println!("\nInvalid input!\n");
+            let action = player1.get_action(self.game_state_mut());
+            if let Some(result) = action.apply(self.game_state_mut()) {
+                println!("{}", self.display());
+                println!("Result: {}", result.to_string());
+                return result;
             }
 
             println!("{}", self.display());
 
-            let ai_action = mcts(self.game_state_mut(), 10000);
-            match ai_action.apply(self.game_state_mut()) {
-                None => {},
-                Some(result) => {
-                    println!("Result: {}", result.to_string());
-                    return result;
-                }
+            let action = player2.get_action(self.game_state_mut());
+            if let Some(result) = action.apply(self.game_state_mut()) {
+                println!("{}", self.display());
+                println!("Result: {}", result.to_string());
+                return result;
             }
         }
     }
@@ -135,12 +95,16 @@ impl GUI {
     }
 
     pub fn get_move(&mut self) -> Action {
+        GUI::get_move_static(self.game_state_mut())
+    }
+
+    pub fn get_move_static(game_state: &mut GameState) -> Action {
         let mut sub_x = String::new();
         let mut sub_y = String::new();
         let mut x = String::new();
         let mut y = String::new();
 
-        println!("Player {}'s move!", self.game_state.current_player.num());
+        println!("Player {}'s move!", game_state.current_player.num());
 
         stdin().read_line(&mut sub_x).unwrap();
         stdin().read_line(&mut sub_y).unwrap();
@@ -152,7 +116,31 @@ impl GUI {
             sub_y.replace("\n", "").parse::<usize>().unwrap(),
             x.replace("\n", "").parse::<usize>().unwrap(),
             y.replace("\n", "").parse::<usize>().unwrap(),
-            self.game_state().current_sub_x == None,
+            game_state.current_sub_x == None,
         )
+    }
+}
+
+pub struct Human {}
+
+impl Human {
+    fn get_move(&self, game_state: &mut GameState) -> Action {
+        GUI::get_move_static(game_state)
+    }
+}
+
+impl Actor for Human {
+    fn get_action(&self, game_state: &mut GameState) -> Action {
+        loop {
+            let action = self.get_move(game_state);
+            let current_sub_x = game_state.current_sub_x;
+            let current_sub_y = game_state.current_sub_y;
+
+            if current_sub_x == None || Some(action.sub_x) == current_sub_x && Some(action.sub_y) == current_sub_y {
+                return action;
+            }
+
+            println!("\nInvalid input!\n");
+        }
     }
 }

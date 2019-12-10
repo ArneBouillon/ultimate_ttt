@@ -3,6 +3,7 @@ use std::time::SystemTime;
 use std::fs;
 
 use crate::game::action::Action;
+use crate::actor::Actor;
 use crate::game::game_state::GameState;
 use crate::game::player::{Player, GameResult};
 
@@ -184,8 +185,24 @@ pub fn mcts(game_state: &mut GameState, time: u128) -> Action {
         root.update(&result);
         count += 1;
     }
-    fs::write("log.log", format!("{}\n\n\n\n\n\n\n\n\n{:#?}", GUI::display_static(game_state), root)).unwrap();
+    //fs::write("log.log", format!("{}\n\n\n\n\n\n\n\n\n{:#?}", GUI::display_static(game_state), root)).unwrap();
 
     println!("Number of simulations: {}", count);
     root.best_child_final()
+}
+
+pub struct MCTSActor {
+    time_limit: u128,
+}
+
+impl MCTSActor {
+    pub fn new(time_limit: u128) -> MCTSActor {
+        MCTSActor { time_limit }
+    }
+}
+
+impl Actor for MCTSActor {
+    fn get_action(&self, game_state: &mut GameState) -> Action {
+        mcts(game_state, self.time_limit)
+    }
 }
