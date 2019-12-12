@@ -13,7 +13,7 @@ pub struct Node {
     value: f64,
     player: Player,
     children: HashMap<Action, Option<Node>>,
-    children_constructed: bool,
+    children_left: isize,
     state: GameState,
     result: Option<GameResult>,
 }
@@ -25,7 +25,7 @@ impl Node {
             value: 0.,
             player,
             children: HashMap::new(),
-            children_constructed: false,
+            children_left: -1,
             state,
             result,
         }
@@ -82,12 +82,7 @@ impl Node {
     }
 
     pub fn fully_expanded(&self) -> bool {
-        if self.children_constructed {
-            for value in self.children().values() {
-                if value.is_none() {
-                    return false;
-                }
-            }
+        if self.children_left == 0 {
             true
         } else {
             false
@@ -95,9 +90,9 @@ impl Node {
     }
 
     pub fn expand(&mut self) -> Action {
-        if !self.children_constructed {
+        if self.children_left == -1 {
             self.children = action_hash_map(self.state_mut());
-            self.children_constructed = true;
+            self.children_left = self.children.len() as isize;
         }
 
         let mut unexpanded_action: Option<Action> = None;
@@ -119,6 +114,7 @@ impl Node {
             );
 
             self.children_mut().insert(action.clone(), Some(new_node));
+            self.children_left -= 1;
             action
         } else {
             panic!("All children were already expanded!");

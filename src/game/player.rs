@@ -18,7 +18,7 @@ impl Player {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum GameResult {
     Player1Wins,
     Player2Wins,

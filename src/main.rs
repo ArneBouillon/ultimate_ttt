@@ -5,4 +5,3 @@ fn main() {
     let mut gui = GUI::new();
     gui.play(&mut MCTSActor::new(1000), &mut MCTSActor::new(1000));
 }
-
