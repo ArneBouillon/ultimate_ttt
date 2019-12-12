@@ -4,7 +4,6 @@ use crate::game::game_state::GameState;
 use crate::game::board::Owned;
 use crate::game::player::GameResult;
 use crate::game::action::Action;
-use crate::ai::mcts::mcts;
 use crate::actor::Actor;
 
 pub struct GUI {
@@ -22,7 +21,7 @@ impl GUI {
 
     pub fn game_state_mut(&mut self) -> &mut GameState { &mut self.game_state }
 
-    pub fn play(&mut self, player1: &mut Actor, player2: &mut Actor) -> GameResult {
+    pub fn play(&mut self, player1: &mut dyn Actor, player2: &mut dyn Actor) -> GameResult {
         loop {
             println!("{}", self.display());
 
@@ -106,12 +105,17 @@ impl GUI {
 
         println!("Player {}'s move!", game_state.current_player.num());
 
-        stdin().read_line(&mut sub_x).unwrap();
-        stdin().read_line(&mut sub_y).unwrap();
+        if game_state.current_sub_x.is_none() {
+            stdin().read_line(&mut sub_x).unwrap();
+            stdin().read_line(&mut sub_y).unwrap();
+        } else {
+            sub_x = game_state.current_sub_x.unwrap().to_string();
+            sub_y = game_state.current_sub_y.unwrap().to_string();
+        }
         stdin().read_line(&mut x).unwrap();
         stdin().read_line(&mut y).unwrap();
 
-        return Action::new(
+        Action::new(
             sub_x.replace("\n", "").parse::<usize>().unwrap(),
             sub_y.replace("\n", "").parse::<usize>().unwrap(),
             x.replace("\n", "").parse::<usize>().unwrap(),

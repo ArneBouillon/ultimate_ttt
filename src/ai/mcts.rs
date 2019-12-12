@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::time::SystemTime;
-use std::fs;
 
 use crate::game::action::Action;
 use crate::actor::Actor;
@@ -8,7 +7,6 @@ use crate::game::game_state::GameState;
 use crate::game::player::{Player, GameResult};
 
 use crate::util::non_nan::NonNan;
-use crate::gui::GUI;
 
 #[derive(Clone, Debug)]
 pub struct Node {
@@ -79,7 +77,7 @@ impl Node {
     pub fn fully_expanded(&self) -> bool {
         if self.children_constructed {
             for value in self.children().values() {
-                if let None = value {
+                if value.is_none() {
                     return false;
                 }
             }
@@ -98,7 +96,7 @@ impl Node {
         let mut unexpanded_action: Option<Action> = None;
 
         for (key, value) in self.children().iter() {
-            if let None = value {
+            if value.is_none() {
                 unexpanded_action = Some(key.clone());
                 break;
             }
@@ -108,13 +106,13 @@ impl Node {
             let new_node = Node::new(self.player.next(), Some(action.clone()), self.visits);
 
             self.children_mut().insert(action.clone(), Some(new_node));
-            return action;
+            action
         } else {
             panic!("All children were already expanded!");
         }
     }
 
-    pub fn update(&mut self, result: &GameResult) {
+    pub fn update(&mut self, result: GameResult) {
         self.visits += 1;
         for node in self.children_mut().values_mut() {
             if let Some(node) = node {
@@ -147,7 +145,7 @@ pub fn mcts_rec(root: &mut Node, game_state: &mut GameState) -> GameResult {
         action.unapply(game_state);
 
         match best_child {
-            Some(best_child) => best_child.update(&result),
+            Some(best_child) => best_child.update(result),
             None => panic!("Unexpanded child!"),
         };
 
@@ -163,7 +161,7 @@ pub fn mcts_rec(root: &mut Node, game_state: &mut GameState) -> GameResult {
         action.unapply(game_state);
 
         match new_child {
-            Some(new_child) => new_child.update(&result),
+            Some(new_child) => new_child.update(result),
             None => panic!("Unexpanded child!"),
         };
 
@@ -181,14 +179,18 @@ pub fn mcts(game_state: &mut GameState, time: u128) -> Action {
     let start_time = SystemTime::now();
     let mut count: usize = 0;
     while SystemTime::now().duration_since(start_time).unwrap().as_millis() < time {
-        let result = &mcts_rec(&mut root, game_state);
-        root.update(&result);
+        let result = mcts_rec(&mut root, game_state);
+        root.update(result);
         count += 1;
     }
-    //fs::write("log.log", format!("{}\n\n\n\n\n\n\n\n\n{:#?}", GUI::display_static(game_state), root)).unwrap();
 
     println!("Number of simulations: {}", count);
-    root.best_child_final()
+    let action = root.best_child_final();
+    if let Some(child) = root.children_mut().get_mut(&action).unwrap() {
+        println!("Expected result: {}", child.weight());
+    }
+
+    action
 }
 
 pub struct MCTSActor {

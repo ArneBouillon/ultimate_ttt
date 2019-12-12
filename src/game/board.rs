@@ -6,6 +6,7 @@ pub trait Owned {
     fn set_result(&mut self, owner: Option<GameResult>);
 }
 
+#[derive(Clone)]
 pub struct Board {
     pub structure: BoardStructure<SubBoard>,
 }
