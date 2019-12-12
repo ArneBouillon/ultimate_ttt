@@ -8,7 +8,6 @@ use crate::game::player::{Player, GameResult};
 
 use crate::util::non_nan::NonNan;
 
-#[derive(Clone)]
 pub struct Node {
     pub visits: usize,
     value: f64,
@@ -165,7 +164,6 @@ pub fn mcts_rec(root: &mut Node) -> GameResult {
         result
     } else {
         let action = root.expand();
-        let mut new_state = root.state().clone();
         let new_child = root.children_mut().get_mut(&action).unwrap();
 
         let result = match new_child {
@@ -173,11 +171,12 @@ pub fn mcts_rec(root: &mut Node) -> GameResult {
             Some(new_child) => {
                 match new_child.result {
                     Some(game_result) => game_result,
-                    None => new_state.play_randomly(),
+                    None => root.state_mut().play_randomly(),
                 }
             }
         };
 
+        let new_child = root.children_mut().get_mut(&action).unwrap();
         match new_child {
             Some(new_child) => new_child.update(result),
             None => panic!("Unexpanded child!"),

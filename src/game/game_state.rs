@@ -60,6 +60,7 @@ impl GameState {
             None => self.play_randomly(),
             Some(action_result) => action_result,
         };
+        action.unapply(self);
 
         result
     }
@@ -68,27 +69,32 @@ impl GameState {
         match self.current_sub_x {
             Some(_) => {
                 let (sub_x, sub_y) = (self.current_sub_x.unwrap(), self.current_sub_y.unwrap());
-                self.possible_actions_sub(sub_x, sub_y, false)
+                (0..9).filter_map(|i| {
+                    match self.board().get(sub_x, sub_y).structure().items[i].result() {
+                        None => Some(Action::new(sub_x, sub_y, i % 3, i / 3, false)),
+                        Some(_) => None,
+                    }
+                }).collect()
             },
             None => {
-                (0..9).filter_map(|i| {
-                    match self.board().structure().items[i].result() {
-                        Some(_) => None,
-                        None => Some(self.possible_actions_sub(i % 3, i / 3, true)),
+                let mut vec = Vec::with_capacity(81);
+
+                for i in 0..9 {
+                    let sub_board = self.board().structure().items[i];
+
+                    if !self.board().structure().items[i].result().is_none() {
+                        continue;
                     }
-                }).flatten().collect()
+
+                    for j in 0..9 {
+                        if sub_board.structure().items[j].result().is_none() {
+                            vec.push(Action::new(i % 3, i / 3, j % 3, j / 3, true));
+                        }
+                    }
+                }
+
+                vec
             },
         }
-    }
-
-    fn possible_actions_sub(&self, sub_x: usize, sub_y: usize, full_board: bool) -> Vec<Action> {
-        let sub_board = self.board().structure().get(sub_x, sub_y);
-
-        (0..9).filter_map(|i| {
-            match sub_board.structure().items[i].result() {
-                None => Some(Action::new(sub_x, sub_y, i % 3, i / 3, full_board )),
-                Some(_) => None,
-            }
-        }).collect()
     }
 }
