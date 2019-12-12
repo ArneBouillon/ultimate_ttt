@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::time::SystemTime;
 
 use crate::game::action::Action;
@@ -12,7 +11,7 @@ pub struct Node {
     pub visits: usize,
     value: f64,
     player: Player,
-    children: HashMap<Action, Option<Node>>,
+    children: Vec<(Action, Option<Node>)>,
     children_left: isize,
     state: GameState,
     result: Option<GameResult>,
@@ -24,18 +23,18 @@ impl Node {
             visits: 0,
             value: 0.,
             player,
-            children: HashMap::new(),
+            children: Vec::new(),
             children_left: -1,
             state,
             result,
         }
     }
 
-    pub fn children(&self) -> &HashMap<Action, Option<Node>> {
+    pub fn children(&self) -> &Vec<(Action, Option<Node>)> {
         &self.children
     }
 
-    pub fn children_mut(&mut self) -> &mut HashMap<Action, Option<Node>> {
+    pub fn children_mut(&mut self) -> &mut Vec<(Action, Option<Node>)> {
         &mut self.children
     }
 
@@ -47,9 +46,9 @@ impl Node {
         &mut self.state
     }
 
-    pub fn best_child(&self, visits: usize) -> Action {
-        let (action, _) = self.children().iter().max_by_key(|(_, v)| {
-            let weight = match v {
+    pub fn best_child(&self, visits: usize) -> usize {
+        let (index, _) = self.children().iter().enumerate().max_by_key(|(index, (action, node))| {
+            let weight = match node {
                 None => 0.,
                 Some(node) => node.search_weight(visits),
             };
@@ -57,12 +56,12 @@ impl Node {
             NonNan::new(weight).unwrap()
         }).unwrap();
 
-        action.clone()
+        index
     }
 
-    pub fn best_child_final(&self) -> Action {
-        let (action, _) = self.children().iter().max_by_key(|(_, v)| {
-            let weight = match v {
+    pub fn best_action(&self) -> Action {
+        let (_, (action, _)) = self.children().iter().enumerate().max_by_key(|(index, (action, node))| {
+            let weight = match node {
                 None => 0.,
                 Some(node) => node.weight(),
             };
@@ -89,36 +88,29 @@ impl Node {
         }
     }
 
-    pub fn expand(&mut self) -> Action {
+    pub fn expand(&mut self) -> usize {
         if self.children_left == -1 {
-            self.children = action_hash_map(self.state_mut());
+            self.children = initial_vec(self.state_mut());
             self.children_left = self.children.len() as isize;
         }
 
-        let mut unexpanded_action: Option<Action> = None;
+        let index = self.children.len() - self.children_left as usize;
+        let (action, node) = self.children.get(index).unwrap();
+        assert!(node.is_none());
 
-        for (key, value) in self.children().iter() {
-            if value.is_none() {
-                unexpanded_action = Some(key.clone());
-                break;
-            }
-        }
+        let mut new_game_state = self.state().clone();
+        let result = action.apply(&mut new_game_state);
+        let new_node = Node::new(
+            self.player.next(),
+            new_game_state,
+            result,
+        );
 
-        if let Some(action) = unexpanded_action {
-            let mut new_game_state = self.state().clone();
-            let result = action.apply(&mut new_game_state);
-            let new_node = Node::new(
-                self.player.next(),
-                new_game_state,
-                result,
-            );
+        let action = action.clone();
+        self.children_mut().insert(index, (action, Some(new_node)));
+        self.children_left -= 1;
 
-            self.children_mut().insert(action.clone(), Some(new_node));
-            self.children_left -= 1;
-            action
-        } else {
-            panic!("All children were already expanded!");
-        }
+        index
     }
 
     pub fn update(&mut self, result: GameResult) {
@@ -127,7 +119,7 @@ impl Node {
     }
 }
 
-fn action_hash_map(game_state: &GameState) -> HashMap<Action, Option<Node>> {
+fn initial_vec(game_state: &GameState) -> Vec<(Action, Option<Node>)> {
     game_state.possible_actions()
         .iter()
         .map(|action| (action.clone(), None))
@@ -136,8 +128,8 @@ fn action_hash_map(game_state: &GameState) -> HashMap<Action, Option<Node>> {
 
 pub fn mcts_rec(root: &mut Node) -> GameResult {
     if root.fully_expanded() {
-        let action = root.best_child(root.visits);
-        let best_child = root.children_mut().get_mut(&action).unwrap();
+        let index = root.best_child(root.visits);
+        let (_, best_child) = root.children_mut().get_mut(index).unwrap();
 
         let result = match best_child {
             None => panic!("Unexpanded child!"),
@@ -156,8 +148,8 @@ pub fn mcts_rec(root: &mut Node) -> GameResult {
 
         result
     } else {
-        let action = root.expand();
-        let new_child = root.children_mut().get_mut(&action).unwrap();
+        let index = root.expand();
+        let (_, new_child) = root.children_mut().get_mut(index).unwrap();
 
         let result = match new_child {
             None => panic!("Unexpanded child!"),
@@ -169,7 +161,7 @@ pub fn mcts_rec(root: &mut Node) -> GameResult {
             }
         };
 
-        let new_child = root.children_mut().get_mut(&action).unwrap();
+        let (_, new_child) = root.children_mut().get_mut(index).unwrap();
         match new_child {
             Some(new_child) => new_child.update(result),
             None => panic!("Unexpanded child!"),
@@ -195,12 +187,16 @@ pub fn mcts(game_state: &mut GameState, time: u128) -> Action {
     }
 
     println!("Number of simulations: {}", count);
-    let action = root.best_child_final();
-    if let Some(child) = root.children_mut().get_mut(&action).unwrap() {
-        println!("Expected result: {}", child.weight());
+    let best_action = root.best_action();
+    for (action, child) in root.children().iter() {
+        if action.clone() == best_action {
+            if let Some(child) = child {
+                println!("Expected result: {}", child.weight());
+            }
+        }
     }
 
-    action
+    best_action
 }
 
 pub struct MCTSActor {
