@@ -14,20 +14,18 @@ pub struct Node {
     player: Player,
     children: HashMap<Action, Option<Node>>,
     children_constructed: bool,
-    action: Option<Action>,
     state: GameState,
     result: Option<GameResult>,
 }
 
 impl Node {
-    pub fn new(player: Player, action: Option<Action>, state: GameState, result: Option<GameResult>) -> Node {
+    pub fn new(player: Player, state: GameState, result: Option<GameResult>) -> Node {
         Node {
             visits: 0,
             value: 0.,
             player,
             children: HashMap::new(),
             children_constructed: false,
-            action,
             state,
             result,
         }
@@ -116,7 +114,6 @@ impl Node {
             let result = action.apply(&mut new_game_state);
             let new_node = Node::new(
                 self.player.next(),
-                Some(action.clone()),
                 new_game_state,
                 result,
             );
@@ -189,7 +186,6 @@ pub fn mcts_rec(root: &mut Node) -> GameResult {
 pub fn mcts(game_state: &mut GameState, time: u128) -> Action {
     let mut root = Node::new(
         game_state.current_player().next(),
-        None,
         game_state.clone(),
         None,
     );

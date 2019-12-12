@@ -86,7 +86,7 @@ impl GameState {
                 for i in 0..9 {
                     let sub_board = self.board().structure().items[i];
 
-                    if !self.board().structure().items[i].result().is_none() {
+                    if self.board().structure().items[i].result().is_some() {
                         continue;
                     }
 
