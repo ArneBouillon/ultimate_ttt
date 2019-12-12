@@ -87,19 +87,13 @@ impl GameState {
     }
 
     fn possible_actions_sub(&self, sub_x: usize, sub_y: usize, full_board: bool) -> Vec<Action> {
-        let sub_board = self.board()
-            .structure()
-            .get(sub_x, sub_y);
+        let sub_board = self.board().structure().get(sub_x, sub_y);
 
-        (0..3).flat_map(|x| {
-            let v: Vec<Action> = (0..3).filter_map(|y|
-                match sub_board.get(x, y).result() {
-                    None => Some(Action::new(sub_x, sub_y, x, y, full_board)),
-                    Some(_) => None,
-                }
-            ).collect();
-
-            v
+        (0..9).filter_map(|i| {
+            match sub_board.structure().items[i].result() {
+                None => Some(Action::new(sub_x, sub_y, i % 3, i / 3, full_board )),
+                Some(_) => None,
+            }
         }).collect()
     }
 }
