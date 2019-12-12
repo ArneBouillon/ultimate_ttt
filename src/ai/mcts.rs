@@ -149,7 +149,7 @@ pub fn mcts_rec(root: &mut Node) -> GameResult {
 
         let result = match new_child.result {
             Some(game_result) => game_result,
-            None => root.state_mut().play_randomly(),
+            None => root.state_mut().play_randomly2(),
         };
 
         let new_child = root.children_mut().get_mut(index).unwrap();

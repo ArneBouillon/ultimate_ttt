@@ -4,6 +4,7 @@ use super::action::Action;
 use crate::game::player::GameResult;
 
 use rand::seq::SliceRandom;
+use rand::Rng;
 
 #[derive(Clone)]
 pub struct GameState {
@@ -63,6 +64,145 @@ impl GameState {
         action.unapply(self);
 
         result
+    }
+
+    pub fn play_randomly2(&self) -> GameResult {
+        let mut actions = self.initialize_actions();
+        let mut new_game_state = self.clone();
+
+        loop {
+            let action = match new_game_state.current_sub_x {
+                None => {
+                    let possible_actions = new_game_state.possible_actions();
+                    let action = possible_actions.choose(&mut rand::thread_rng()).unwrap();
+                    actions[3 * action.sub_y + action.sub_x].retain(|ac| ac.x != action.x || ac.y != action.y);
+                    action.clone()
+                },
+                Some(sub_x) => {
+                    let sub_y = new_game_state.current_sub_y.unwrap();
+                    let random_num = rand::thread_rng().gen_range(0, actions[3 * sub_y + sub_x].len());
+                    actions[3 * sub_y + sub_x].remove(random_num).clone()
+                },
+            };
+
+            let action_result = action.apply(&mut new_game_state);
+            if let Some(result) = action_result {
+                return result;
+            }
+        }
+    }
+
+    pub fn initialize_actions(&self) -> [Vec<Action>; 9] {
+        [
+            (0..9).filter_map(|i| {
+                match self.board.structure.items[0].structure.items[i].result() {
+                    None => Some(Action::new(
+                        0,
+                        0,
+                        i % 3,
+                        i / 3,
+                        false,
+                    )),
+                    Some(_) => None,
+                }
+            }).collect(),
+            (0..9).filter_map(|i| {
+                match self.board.structure.items[1].structure.items[i].result() {
+                    None => Some(Action::new(
+                        1,
+                        0,
+                        i % 3,
+                        i / 3,
+                        false,
+                    )),
+                    Some(_) => None,
+                }
+            }).collect(),
+            (0..9).filter_map(|i| {
+                match self.board.structure.items[2].structure.items[i].result() {
+                    None => Some(Action::new(
+                        2,
+                        0,
+                        i % 3,
+                        i / 3,
+                        false,
+                    )),
+                    Some(_) => None,
+                }
+            }).collect(),
+            (0..9).filter_map(|i| {
+                match self.board.structure.items[3].structure.items[i].result() {
+                    None => Some(Action::new(
+                        0,
+                        1,
+                        i % 3,
+                        i / 3,
+                        false,
+                    )),
+                    Some(_) => None,
+                }
+            }).collect(),
+            (0..9).filter_map(|i| {
+                match self.board.structure.items[4].structure.items[i].result() {
+                    None => Some(Action::new(
+                        1,
+                        1,
+                        i % 3,
+                        i / 3,
+                        false,
+                    )),
+                    Some(_) => None,
+                }
+            }).collect(),
+            (0..9).filter_map(|i| {
+                match self.board.structure.items[5].structure.items[i].result() {
+                    None => Some(Action::new(
+                        2,
+                        1,
+                        i % 3,
+                        i / 3,
+                        false,
+                    )),
+                    Some(_) => None,
+                }
+            }).collect(),
+            (0..9).filter_map(|i| {
+                match self.board.structure.items[6].structure.items[i].result() {
+                    None => Some(Action::new(
+                        0,
+                        2,
+                        i % 3,
+                        i / 3,
+                        false,
+                    )),
+                    Some(_) => None,
+                }
+            }).collect(),
+            (0..9).filter_map(|i| {
+                match self.board.structure.items[7].structure.items[i].result() {
+                    None => Some(Action::new(
+                        1,
+                        2,
+                        i % 3,
+                        i / 3,
+                        false,
+                    )),
+                    Some(_) => None,
+                }
+            }).collect(),
+            (0..9).filter_map(|i| {
+                match self.board.structure.items[8].structure.items[i].result() {
+                    None => Some(Action::new(
+                        2,
+                        2,
+                        i % 3,
+                        i / 3,
+                        false,
+                    )),
+                    Some(_) => None,
+                }
+            }).collect(),
+        ]
     }
 
     pub fn possible_actions(&self) -> Vec<Action> {
