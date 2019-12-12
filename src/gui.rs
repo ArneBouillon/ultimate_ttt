@@ -127,24 +127,8 @@ impl GUI {
 
 pub struct Human {}
 
-impl Human {
-    fn get_move(&self, game_state: &mut GameState) -> Action {
-        GUI::get_move_static(game_state)
-    }
-}
-
 impl Actor for Human {
     fn get_action(&self, game_state: &mut GameState) -> Action {
-        loop {
-            let action = self.get_move(game_state);
-            let current_sub_x = game_state.current_sub_x;
-            let current_sub_y = game_state.current_sub_y;
-
-            if current_sub_x == None || Some(action.sub_x) == current_sub_x && Some(action.sub_y) == current_sub_y {
-                return action;
-            }
-
-            println!("\nInvalid input!\n");
-        }
+        GUI::get_move_static(game_state)
     }
 }

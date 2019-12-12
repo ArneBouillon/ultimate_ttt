@@ -3,6 +3,7 @@ use std::time::SystemTime;
 use crate::game::action::Action;
 use crate::actor::Actor;
 use crate::game::game_state::GameState;
+use crate::game::board::Owned;
 use crate::game::player::{Player, GameResult};
 
 use crate::util::non_nan::NonNan;
@@ -10,19 +11,17 @@ use crate::util::non_nan::NonNan;
 pub struct Node {
     pub visits: usize,
     value: f32,
-    player: Player,
-    children: Vec<(Action, Option<Node>)>,
+    children: Vec<Node>,
     children_left: isize,
     state: GameState,
     result: Option<GameResult>,
 }
 
 impl Node {
-    pub fn new(player: Player, state: GameState, result: Option<GameResult>) -> Node {
+    pub fn new(state: GameState, result: Option<GameResult>) -> Node {
         Node {
             visits: 0,
             value: 0.,
-            player,
             children: Vec::new(),
             children_left: -1,
             state,
@@ -30,11 +29,11 @@ impl Node {
         }
     }
 
-    pub fn children(&self) -> &Vec<(Action, Option<Node>)> {
+    pub fn children(&self) -> &Vec<Node> {
         &self.children
     }
 
-    pub fn children_mut(&mut self) -> &mut Vec<(Action, Option<Node>)> {
+    pub fn children_mut(&mut self) -> &mut Vec<Node> {
         &mut self.children
     }
 
@@ -49,29 +48,22 @@ impl Node {
     pub fn best_child(&self, visits: usize) -> usize {
         let visits_ln = (visits as f32).ln();
 
-        let (index, _) = self.children().iter().enumerate().max_by_key(|(index, (action, node))| {
-            let weight = match node {
-                None => 0.,
-                Some(node) => node.search_weight(visits_ln),
-            };
-
-            NonNan::new(weight).unwrap()
+        let (index, _) = self.children().iter().enumerate().max_by_key(|(_, node)| {
+            NonNan::new(node.search_weight(visits_ln)).unwrap()
         }).unwrap();
 
         index
     }
 
-    pub fn best_action(&self) -> Action {
-        let (_, (action, _)) = self.children().iter().enumerate().max_by_key(|(index, (action, node))| {
-            let weight = match node {
-                None => 0.,
-                Some(node) => node.weight(),
-            };
-
-            NonNan::new(weight).unwrap()
+    pub fn best_action(&self) -> (Action, f32) {
+        let node = self.children().iter().max_by_key(|node| {
+            NonNan::new(node.weight()).unwrap()
         }).unwrap();
 
-        action.clone()
+        (
+            action_between(self, node).clone(),
+            node.weight(),
+        )
     }
 
     pub fn weight(&self) -> f32 {
@@ -79,15 +71,16 @@ impl Node {
     }
 
     pub fn search_weight(&self, parent_visits_ln: f32) -> f32 {
-        self.weight() + (2. * parent_visits_ln / self.visits as f32).sqrt()
+        if self.visits == 0 {
+            0.
+        } else {
+            self.value / self.visits as f32 + (2. * parent_visits_ln / self.visits as f32).sqrt()
+        }
     }
 
+    #[inline]
     pub fn fully_expanded(&self) -> bool {
-        if self.children_left == 0 {
-            true
-        } else {
-            false
-        }
+        self.children_left == 0
     }
 
     pub fn expand(&mut self) -> usize {
@@ -96,78 +89,71 @@ impl Node {
             self.children_left = self.children.len() as isize;
         }
 
-        let index = self.children.len() - self.children_left as usize;
-        let (action, node) = self.children.get(index).unwrap();
-        assert!(node.is_none());
-
-        let mut new_game_state = self.state().clone();
-        let result = action.apply(&mut new_game_state);
-        let new_node = Node::new(
-            self.player.next(),
-            new_game_state,
-            result,
-        );
-
-        let action = action.clone();
-        self.children_mut().insert(index, (action, Some(new_node)));
         self.children_left -= 1;
-
-        index
+        self.children.len() - self.children_left as usize - 1
     }
 
     pub fn update(&mut self, result: GameResult) {
         self.visits += 1;
-        self.value += result.score(self.player);
+        self.value += result.score(self.state.current_player.next());
     }
 }
 
-fn initial_vec(game_state: &GameState) -> Vec<(Action, Option<Node>)> {
+fn action_between(node1: &Node, node2: &Node) -> Action {
+    for sub_x in 0..3 {
+        for sub_y in 0..3 {
+            for x in 0..3 {
+                for y in 0..3 {
+                    if node1.state().board().get(sub_x, sub_y).get(x, y).result() !=
+                        node2.state().board().get(sub_x, sub_y).get(x, y).result() {
+
+                        return Action::new(sub_x, sub_y, x, y, node1.state().current_sub_x.is_none());
+                    }
+                }
+            }
+        }
+    }
+
+    panic!("No differences");
+}
+
+fn initial_vec(game_state: &GameState) -> Vec<Node> {
     game_state.possible_actions()
         .iter()
-        .map(|action| (action.clone(), None))
-        .collect()
+        .map(|action| {
+            let mut new_game_state = game_state.clone();
+            let result = action.apply(&mut new_game_state);
+            Node::new(
+                new_game_state,
+                result,
+            )
+        }).collect()
 }
 
 pub fn mcts_rec(root: &mut Node) -> GameResult {
     if root.fully_expanded() {
         let index = root.best_child(root.visits);
-        let (_, best_child) = root.children_mut().get_mut(index).unwrap();
+        let best_child = root.children_mut().get_mut(index).unwrap();
 
-        let result = match best_child {
-            None => panic!("Unexpanded child!"),
-            Some(best_child) => {
-                match best_child.result {
-                    Some(game_result) => game_result,
-                    None => mcts_rec(best_child),
-                }
-            }
+        let result = match best_child.result {
+            Some(game_result) => game_result,
+            None => mcts_rec(best_child),
         };
 
-        match best_child {
-            Some(best_child) => best_child.update(result),
-            None => panic!("Unexpanded child!"),
-        };
+        best_child.update(result);
 
         result
     } else {
         let index = root.expand();
-        let (_, new_child) = root.children_mut().get_mut(index).unwrap();
+        let new_child = root.children_mut().get_mut(index).unwrap();
 
-        let result = match new_child {
-            None => panic!("Unexpanded child!"),
-            Some(new_child) => {
-                match new_child.result {
-                    Some(game_result) => game_result,
-                    None => root.state_mut().play_randomly(),
-                }
-            }
+        let result = match new_child.result {
+            Some(game_result) => game_result,
+            None => root.state_mut().play_randomly(),
         };
 
-        let (_, new_child) = root.children_mut().get_mut(index).unwrap();
-        match new_child {
-            Some(new_child) => new_child.update(result),
-            None => panic!("Unexpanded child!"),
-        };
+        let new_child = root.children_mut().get_mut(index).unwrap();
+        new_child.update(result);
 
         result
     }
@@ -175,7 +161,6 @@ pub fn mcts_rec(root: &mut Node) -> GameResult {
 
 pub fn mcts(game_state: &mut GameState, time: u128) -> Action {
     let mut root = Node::new(
-        game_state.current_player().next(),
         game_state.clone(),
         None,
     );
@@ -189,14 +174,8 @@ pub fn mcts(game_state: &mut GameState, time: u128) -> Action {
     }
 
     println!("Number of simulations: {}", count);
-    let best_action = root.best_action();
-    for (action, child) in root.children().iter() {
-        if action.clone() == best_action {
-            if let Some(child) = child {
-                println!("Expected result: {}", child.weight());
-            }
-        }
-    }
+    let (best_action, weight) = root.best_action();
+    println!("Expected result: {}", weight);
 
     best_action
 }

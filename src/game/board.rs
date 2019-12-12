@@ -37,11 +37,11 @@ impl Board {
     pub fn make_move(&mut self, result: Option<GameResult>, sub_x: usize, sub_y: usize, x: usize, y: usize) -> (Option<usize>, Option<usize>, Option<GameResult>) {
         self.get_mut(sub_x, sub_y)
             .structure_mut()
-            .set_result_at(x.clone(), y.clone(), result);
+            .set_result_at(x, y, result);
 
         let mut game_result: Option<GameResult> = None;
 
-        if result != None {
+        if result.is_some() {
             match self.get_mut(sub_x, sub_y).structure().check_result(x, y) {
                 None => {},
                 Some(result) => {

@@ -46,7 +46,7 @@ impl GameState {
 
         self.current_sub_x = new_x;
         self.current_sub_y = new_y;
-        self.current_player = self.current_player().next();
+        self.current_player = current_player.next();
 
         result
     }
@@ -67,8 +67,8 @@ impl GameState {
 
     pub fn possible_actions(&self) -> Vec<Action> {
         match self.current_sub_x {
-            Some(_) => {
-                let (sub_x, sub_y) = (self.current_sub_x.unwrap(), self.current_sub_y.unwrap());
+            Some(sub_x) => {
+                let sub_y = self.current_sub_y.unwrap();
                 let sub_board_items = self.board().get(sub_x, sub_y).structure().items;
                 let mut vec = Vec::with_capacity(9);
 
@@ -83,16 +83,18 @@ impl GameState {
             None => {
                 let mut vec = Vec::with_capacity(81);
 
+                let board_items = self.board().structure().items;
                 for i in 0..9 {
-                    let sub_board = self.board().structure().items[i];
+                    let sub_board = board_items[i];
 
-                    if self.board().structure().items[i].result().is_some() {
+                    if sub_board.result().is_some() {
                         continue;
                     }
 
+                    let sub_board_items = sub_board.structure().items;
                     let (sub_x, sub_y) = (i % 3, i / 3);
                     for j in 0..9 {
-                        if sub_board.structure().items[j].result().is_none() {
+                        if sub_board_items[j].result().is_none() {
                             vec.push(Action::new(sub_x, sub_y, j % 3, j / 3, true));
                         }
                     }
