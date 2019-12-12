@@ -16,11 +16,10 @@ pub struct Node {
     children: HashMap<Action, Option<Node>>,
     children_constructed: bool,
     action: Option<Action>,
-    parent_visits: usize,
 }
 
 impl Node {
-    pub fn new(player: Player, action: Option<Action>, parent_visits: usize) -> Node {
+    pub fn new(player: Player, action: Option<Action>) -> Node {
         Node {
             visits: 0,
             value: 0.,
@@ -28,7 +27,6 @@ impl Node {
             children: HashMap::new(),
             children_constructed: false,
             action,
-            parent_visits,
         }
     }
 
@@ -40,11 +38,11 @@ impl Node {
         &mut self.children
     }
 
-    pub fn best_child(&self) -> Action {
+    pub fn best_child(&self, visits: usize) -> Action {
         let (action, _) = self.children().iter().max_by_key(|(_, v)| {
             let weight = match v {
                 None => 0.,
-                Some(node) => node.search_weight(),
+                Some(node) => node.search_weight(visits),
             };
 
             NonNan::new(weight).unwrap()
@@ -70,8 +68,8 @@ impl Node {
         if self.visits == 0 { 0. } else { self.value / self.visits as f64 }
     }
 
-    pub fn search_weight(&self) -> f64 {
-        self.weight() + (2. * (self.parent_visits as f64).ln() / self.visits as f64).sqrt()
+    pub fn search_weight(&self, parent_visits: usize) -> f64 {
+        self.weight() + (2. * (parent_visits as f64).ln() / self.visits as f64).sqrt()
     }
 
     pub fn fully_expanded(&self) -> bool {
@@ -103,7 +101,7 @@ impl Node {
         }
 
         if let Some(action) = unexpanded_action {
-            let new_node = Node::new(self.player.next(), Some(action.clone()), self.visits);
+            let new_node = Node::new(self.player.next(), Some(action.clone()));
 
             self.children_mut().insert(action.clone(), Some(new_node));
             action
@@ -114,11 +112,6 @@ impl Node {
 
     pub fn update(&mut self, result: GameResult) {
         self.visits += 1;
-        for node in self.children_mut().values_mut() {
-            if let Some(node) = node {
-                node.parent_visits += 1;
-            }
-        }
         self.value += result.score(self.player);
     }
 }
@@ -132,7 +125,7 @@ fn action_hash_map(game_state: &GameState) -> HashMap<Action, Option<Node>> {
 
 pub fn mcts_rec(root: &mut Node, game_state: &mut GameState) -> GameResult {
     if root.fully_expanded() {
-        let action = root.best_child();
+        let action = root.best_child(root.visits);
         let best_child = root.children_mut().get_mut(&action).unwrap();
 
         let result = match action.apply(game_state) {
@@ -173,7 +166,6 @@ pub fn mcts(game_state: &mut GameState, time: u128) -> Action {
     let mut root = Node::new(
         game_state.current_player().next(),
         None,
-        0,
     );
 
     let start_time = SystemTime::now();

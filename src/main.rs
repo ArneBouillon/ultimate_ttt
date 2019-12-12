@@ -3,6 +3,5 @@ use ultimate_ttt::ai::mcts::MCTSActor;
 
 fn main() {
     let mut gui = GUI::new();
-    gui.play(&mut Human{}, &mut MCTSActor::new(500));
+    gui.play(&mut MCTSActor::new(1000), &mut Human{});
 }
-
