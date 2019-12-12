@@ -69,12 +69,16 @@ impl GameState {
         match self.current_sub_x {
             Some(_) => {
                 let (sub_x, sub_y) = (self.current_sub_x.unwrap(), self.current_sub_y.unwrap());
-                (0..9).filter_map(|i| {
-                    match self.board().get(sub_x, sub_y).structure().items[i].result() {
-                        None => Some(Action::new(sub_x, sub_y, i % 3, i / 3, false)),
-                        Some(_) => None,
+                let sub_board_items = self.board().get(sub_x, sub_y).structure().items;
+                let mut vec = Vec::with_capacity(9);
+
+                for i in 0..9 {
+                    if sub_board_items[i].result().is_none() {
+                        vec.push(Action::new(sub_x, sub_y, i % 3, i / 3, false));
                     }
-                }).collect()
+                }
+
+                vec
             },
             None => {
                 let mut vec = Vec::with_capacity(81);
@@ -86,9 +90,10 @@ impl GameState {
                         continue;
                     }
 
+                    let (sub_x, sub_y) = (i % 3, i / 3);
                     for j in 0..9 {
                         if sub_board.structure().items[j].result().is_none() {
-                            vec.push(Action::new(i % 3, i / 3, j % 3, j / 3, true));
+                            vec.push(Action::new(sub_x, sub_y, j % 3, j / 3, true));
                         }
                     }
                 }
