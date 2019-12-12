@@ -9,7 +9,7 @@ use crate::util::non_nan::NonNan;
 
 pub struct Node {
     pub visits: usize,
-    value: f64,
+    value: f32,
     player: Player,
     children: Vec<(Action, Option<Node>)>,
     children_left: isize,
@@ -47,10 +47,12 @@ impl Node {
     }
 
     pub fn best_child(&self, visits: usize) -> usize {
+        let visits_ln = (visits as f32).ln();
+
         let (index, _) = self.children().iter().enumerate().max_by_key(|(index, (action, node))| {
             let weight = match node {
                 None => 0.,
-                Some(node) => node.search_weight(visits),
+                Some(node) => node.search_weight(visits_ln),
             };
 
             NonNan::new(weight).unwrap()
@@ -72,12 +74,12 @@ impl Node {
         action.clone()
     }
 
-    pub fn weight(&self) -> f64 {
-        if self.visits == 0 { 0. } else { self.value / self.visits as f64 }
+    pub fn weight(&self) -> f32 {
+        if self.visits == 0 { 0. } else { self.value / self.visits as f32 }
     }
 
-    pub fn search_weight(&self, parent_visits: usize) -> f64 {
-        self.weight() + (2. * (parent_visits as f64).ln() / self.visits as f64).sqrt()
+    pub fn search_weight(&self, parent_visits_ln: f32) -> f32 {
+        self.weight() + (2. * parent_visits_ln / self.visits as f32).sqrt()
     }
 
     pub fn fully_expanded(&self) -> bool {

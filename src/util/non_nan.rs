@@ -2,10 +2,10 @@
 use std::cmp::Ordering;
 
 #[derive(PartialEq,PartialOrd)]
-pub struct NonNan(f64);
+pub struct NonNan(f32);
 
 impl NonNan {
-    pub fn new(val: f64) -> Option<NonNan> {
+    pub fn new(val: f32) -> Option<NonNan> {
         if val.is_nan() {
             None
         } else {

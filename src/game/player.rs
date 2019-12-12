@@ -34,7 +34,7 @@ impl GameResult {
         }
     }
 
-    pub fn score(self, player: Player) -> f64 {
+    pub fn score(self, player: Player) -> f32 {
         match (self, player) {
             (GameResult::Player1Wins, Player::Player1) => 1.,
             (GameResult::Player1Wins, Player::Player2) => 0.,
