@@ -2,7 +2,7 @@ use crate::game::game_state::GameState;
 use crate::game::player::GameResult;
 use crate::game::board::Owned;
 
-#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct Action {
     pub sub_x: usize,
     pub sub_y: usize,

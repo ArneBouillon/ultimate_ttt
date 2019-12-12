@@ -5,6 +5,7 @@ use crate::game::player::GameResult;
 
 use rand::seq::SliceRandom;
 
+#[derive(Clone)]
 pub struct GameState {
     pub board: Board,
     pub current_player: Player,
@@ -59,7 +60,6 @@ impl GameState {
             None => self.play_randomly(),
             Some(action_result) => action_result,
         };
-        action.unapply(self);
 
         result
     }
