@@ -1,7 +1,7 @@
 use super::board::{Board, Owned};
 use super::player::Player;
 use super::action::Action;
-use crate::game::player::GameResult;
+use crate::game::game_result::GameResult;
 
 use rand::seq::SliceRandom;
 use rand::Rng;
@@ -52,21 +52,7 @@ impl GameState {
         result
     }
 
-    pub fn play_randomly(&mut self) -> GameResult {
-        let actions = self.possible_actions();
-        let action = actions.choose(&mut rand::thread_rng()).unwrap();
-
-        let action_result = action.apply(self);
-        let result = match action_result {
-            None => self.play_randomly(),
-            Some(action_result) => action_result,
-        };
-        action.unapply(self);
-
-        result
-    }
-
-    pub fn play_randomly2(&self) -> GameResult {
+    pub fn play_randomly(&self) -> GameResult {
         let mut actions = self.initialize_actions();
         let mut new_game_state = self.clone();
 
@@ -95,7 +81,7 @@ impl GameState {
     pub fn initialize_actions(&self) -> [Vec<Action>; 9] {
         [
             (0..9).filter_map(|i| {
-                match self.board.structure.items[0].structure.items[i].result() {
+                match self.board.structure().items[0].structure().items[i].result() {
                     None => Some(Action::new(
                         0,
                         0,
@@ -107,7 +93,7 @@ impl GameState {
                 }
             }).collect(),
             (0..9).filter_map(|i| {
-                match self.board.structure.items[1].structure.items[i].result() {
+                match self.board.structure().items[1].structure().items[i].result() {
                     None => Some(Action::new(
                         1,
                         0,
@@ -119,7 +105,7 @@ impl GameState {
                 }
             }).collect(),
             (0..9).filter_map(|i| {
-                match self.board.structure.items[2].structure.items[i].result() {
+                match self.board.structure().items[2].structure().items[i].result() {
                     None => Some(Action::new(
                         2,
                         0,
@@ -131,7 +117,7 @@ impl GameState {
                 }
             }).collect(),
             (0..9).filter_map(|i| {
-                match self.board.structure.items[3].structure.items[i].result() {
+                match self.board.structure().items[3].structure().items[i].result() {
                     None => Some(Action::new(
                         0,
                         1,
@@ -143,7 +129,7 @@ impl GameState {
                 }
             }).collect(),
             (0..9).filter_map(|i| {
-                match self.board.structure.items[4].structure.items[i].result() {
+                match self.board.structure().items[4].structure().items[i].result() {
                     None => Some(Action::new(
                         1,
                         1,
@@ -155,7 +141,7 @@ impl GameState {
                 }
             }).collect(),
             (0..9).filter_map(|i| {
-                match self.board.structure.items[5].structure.items[i].result() {
+                match self.board.structure().items[5].structure().items[i].result() {
                     None => Some(Action::new(
                         2,
                         1,
@@ -167,7 +153,7 @@ impl GameState {
                 }
             }).collect(),
             (0..9).filter_map(|i| {
-                match self.board.structure.items[6].structure.items[i].result() {
+                match self.board.structure().items[6].structure().items[i].result() {
                     None => Some(Action::new(
                         0,
                         2,
@@ -179,7 +165,7 @@ impl GameState {
                 }
             }).collect(),
             (0..9).filter_map(|i| {
-                match self.board.structure.items[7].structure.items[i].result() {
+                match self.board.structure().items[7].structure().items[i].result() {
                     None => Some(Action::new(
                         1,
                         2,
@@ -191,7 +177,7 @@ impl GameState {
                 }
             }).collect(),
             (0..9).filter_map(|i| {
-                match self.board.structure.items[8].structure.items[i].result() {
+                match self.board.structure().items[8].structure().items[i].result() {
                     None => Some(Action::new(
                         2,
                         2,
@@ -209,7 +195,7 @@ impl GameState {
         match self.current_sub_x {
             Some(sub_x) => {
                 let sub_y = self.current_sub_y.unwrap();
-                let sub_board_items = self.board().get(sub_x, sub_y).structure().items;
+                let sub_board_items = &self.board().get(sub_x, sub_y).structure().items;
                 let mut vec = Vec::with_capacity(9);
 
                 for i in 0..9 {
@@ -223,15 +209,15 @@ impl GameState {
             None => {
                 let mut vec = Vec::with_capacity(81);
 
-                let board_items = self.board().structure().items;
+                let board_items = &self.board().structure().items;
                 for i in 0..9 {
-                    let sub_board = board_items[i];
+                    let sub_board = &board_items[i];
 
                     if sub_board.result().is_some() {
                         continue;
                     }
 
-                    let sub_board_items = sub_board.structure().items;
+                    let sub_board_items = &sub_board.structure().items;
                     let (sub_x, sub_y) = (i % 3, i / 3);
                     for j in 0..9 {
                         if sub_board_items[j].result().is_none() {

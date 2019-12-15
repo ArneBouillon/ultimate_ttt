@@ -1,14 +1,14 @@
-use crate::game::player::GameResult;
+use crate::game::game_result::GameResult;
 
 pub trait Owned {
     fn result(&self) -> Option<GameResult>;
 
-    fn set_result(&mut self, owner: Option<GameResult>);
+    fn set_result(&mut self, result: Option<GameResult>);
 }
 
 #[derive(Clone)]
 pub struct Board {
-    pub structure: BoardStructure<SubBoard>,
+    structure: BoardStructure<SubBoard>,
 }
 
 impl Board {
@@ -63,7 +63,7 @@ impl Board {
 
 #[derive(Copy, Clone)]
 pub struct SubBoard {
-    pub structure: BoardStructure<Square>,
+    structure: BoardStructure<Square>,
     result: Option<GameResult>,
 }
 

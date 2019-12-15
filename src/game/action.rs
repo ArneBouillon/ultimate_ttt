@@ -1,8 +1,7 @@
 use crate::game::game_state::GameState;
-use crate::game::player::GameResult;
-use crate::game::board::Owned;
+use crate::game::game_result::GameResult;
 
-#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Clone)]
 pub struct Action {
     pub sub_x: usize,
     pub sub_y: usize,
@@ -24,20 +23,5 @@ impl Action {
 
     pub fn apply(&self, game_state: &mut GameState) -> Option<GameResult> {
         game_state.make_move(self.sub_x, self.sub_y, self.x, self.y)
-    }
-
-    pub fn unapply(&self, game_state: &mut GameState) {
-        game_state.board_mut().make_move(None, self.sub_x, self.sub_y, self.x, self.y);
-        game_state.current_player = game_state.current_player().next();
-
-        if self.full_board {
-            game_state.current_sub_x = None;
-            game_state.current_sub_y = None;
-        } else {
-            game_state.current_sub_x = Some(self.sub_x);
-            game_state.current_sub_y = Some(self.sub_y);
-        };
-
-        game_state.board_mut().get_mut(self.sub_x, self.sub_y).set_result(None);
     }
 }

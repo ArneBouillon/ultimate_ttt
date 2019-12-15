@@ -1,7 +1,7 @@
 extern crate rand;
 
-pub mod actor;
+mod actor;
 pub mod ai;
-pub mod game;
+mod game;
 pub mod gui;
-pub mod util;
+mod util;

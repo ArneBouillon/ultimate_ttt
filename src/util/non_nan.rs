@@ -1,7 +1,6 @@
-
 use std::cmp::Ordering;
 
-#[derive(PartialEq,PartialOrd)]
+#[derive(PartialEq, PartialOrd)]
 pub struct NonNan(f32);
 
 impl NonNan {

@@ -1,15 +1,15 @@
 use std::time::SystemTime;
 
-use crate::game::action::Action;
 use crate::actor::Actor;
-use crate::game::game_state::GameState;
+use crate::game::action::Action;
 use crate::game::board::Owned;
-use crate::game::player::{Player, GameResult};
+use crate::game::game_result::GameResult;
+use crate::game::game_state::GameState;
 
 use crate::util::non_nan::NonNan;
 
 pub struct Node {
-    pub visits: usize,
+    visits: usize,
     value: f32,
     children: Vec<Node>,
     children_left: isize,
@@ -149,7 +149,7 @@ pub fn mcts_rec(root: &mut Node) -> GameResult {
 
         let result = match new_child.result {
             Some(game_result) => game_result,
-            None => root.state_mut().play_randomly2(),
+            None => root.state_mut().play_randomly(),
         };
 
         let new_child = root.children_mut().get_mut(index).unwrap();
